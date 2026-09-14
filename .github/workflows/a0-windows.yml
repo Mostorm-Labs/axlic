@@ -1,0 +1,102 @@
+name: A0 Windows evidence
+
+on:
+  push:
+    branches:
+      - codex/axl-v1-a0
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a0-release:
+    runs-on: windows-2025
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Install frozen Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: 3.13.15
+
+      - name: Install frozen verification tools
+        run: python -m pip install --disable-pip-version-check cmake==4.4.2 cryptography==50.0.1
+
+      - name: Verify frozen toolchain availability
+        shell: pwsh
+        run: |
+          if ((cmake --version | Select-Object -First 1) -ne 'cmake version 4.4.2') { throw 'CMake 4.4.2 is required' }
+          if (-not (Test-Path 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0')) { throw 'Windows SDK 10.0.26100.0 is required' }
+
+      - name: Configure x64 Release
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -T v143
+
+      - name: Build x64 Release
+        run: cmake --build build --config Release --parallel
+
+      - name: Run frozen test suite
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force evidence | Out-Null
+          ctest --test-dir build -C Release --output-on-failure --output-junit evidence/ctest.xml
+
+      - name: Produce EV-01 production corpus manifest
+        run: >-
+          python reference/tools/ev01_manifest.py
+          --test-exe build/client/Release/axlic_unit_tests.exe
+          --corpus reference/vectors/a0/corpus.json
+          --report evidence/ev01-production.json
+          --implementation-revision ${{ github.sha }}
+
+      - name: Independent canonical and crypto cross-check
+        run: >-
+          python reference/tools/a0_reference.py --check
+          --implementation-revision ${{ github.sha }}
+          --report evidence/independent-reference.json
+
+      - name: Produce EV-06 CLI contract report
+        run: >-
+          python client/tests/test_cli.py
+          --exe build/client/Release/axlic.exe
+          --vectors reference/vectors/a0/corpus.json
+          --valid-state reference/vectors/a0/valid_state.json
+          --absent-state reference/vectors/a0/absent_state.json
+          --implementation-revision ${{ github.sha }}
+          --report evidence/cli-contract.json
+
+      - name: Prove offline and no-server boundary
+        run: >-
+          python client/tests/verify_offline_boundary.py
+          --exe build/client/Release/axlic.exe
+          --build-dir build
+          --state reference/vectors/a0/valid_state.json
+          --implementation-revision ${{ github.sha }}
+          --report evidence/offline-no-server.json
+
+      - name: Produce W1 baseline
+        run: >-
+          python bench/w1/benchmark.py
+          --exe build/client/Release/axlic.exe
+          --state reference/vectors/a0/valid_state.json
+          --warmup 20 --samples 200
+          --implementation-revision ${{ github.sha }}
+          --report evidence/w1-baseline.json
+
+      - name: Record build and toolchain identity
+        run: >-
+          python reference/tools/toolchain_report.py
+          --build-dir build
+          --implementation-revision ${{ github.sha }}
+          --report evidence/build-toolchain.json
+
+      - name: Upload reviewer evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: AXL-V1-A0-evidence
+          path: evidence
+          if-no-files-found: error
+          retention-days: 30
