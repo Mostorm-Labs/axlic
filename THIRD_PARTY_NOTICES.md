@@ -1,0 +1,9 @@
+# Third-party notices
+
+AxLicense A0 fetches the following dependencies at immutable Git commits:
+
+- QCBOR, commit `930708bb86481e88879eb1d87fd4d664f1d69503`, BSD-3-Clause License.
+- nlohmann/json, commit `55f93686c01528224f448c19128836e7df245f72`, MIT License.
+- Catch2, commit `8b08d4d79514f45f7e4ce2a607ac9c94e920d1bb`, Boost Software License 1.0. Test-only.
+
+Windows CNG/BCrypt and the Windows SDK are system components and are not redistributed by this repository.

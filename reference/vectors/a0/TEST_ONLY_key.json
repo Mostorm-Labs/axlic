@@ -1,0 +1,6 @@
+{
+  "key_id": "a0-fixture-key-1",
+  "private_scalar_hex": "519b423d715f8b5d5499f8e3aef260765c1f1f5c1cc53f3f8c86c1f11b2e6a7d",
+  "public_key_xy_hex": "47c6a400be74b96ade02d260c8b7869a79baa30803df5a1f19287bcd5ca6a93d8682c01a5ae3a7053dcf0b25204db2019b50507e107075c3d772ac834469c15b",
+  "warning": "NON-PRODUCTION TEST FIXTURE PRIVATE KEY"
+}
