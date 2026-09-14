@@ -50,6 +50,7 @@ def main() -> None:
         "compiler": str(compiler),
         "compiler_family_version": "MSVC 19.44 / toolset 14.44",
         "dependencies": {
+            "QCBOR": "930708bb86481e88879eb1d87fd4d664f1d69503",
             "Catch2": "8b08d4d79514f45f7e4ce2a607ac9c94e920d1bb",
             "nlohmann_json": "55f93686c01528224f448c19128836e7df245f72",
         },

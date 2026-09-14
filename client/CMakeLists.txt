@@ -8,13 +8,29 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+set(BUILD_QCBOR_TEST OFF CACHE STRING "" FORCE)
+set(BUILD_QCBOR_WARN OFF CACHE BOOL "" FORCE)
+set(USEFULBUF_DISABLE_ALL_FLOAT ON CACHE BOOL "" FORCE)
+set(QCBOR_DISABLE_NON_INTEGER_LABELS ON CACHE BOOL "" FORCE)
+set(QCBOR_DISABLE_TAGS ON CACHE BOOL "" FORCE)
+set(QCBOR_DISABLE_EXP_AND_MANTISSA ON CACHE BOOL "" FORCE)
+set(QCBOR_DISABLE_INDEFINITE_LENGTH_STRINGS ON CACHE BOOL "" FORCE)
+set(QCBOR_DISABLE_INDEFINITE_LENGTH_ARRAYS ON CACHE BOOL "" FORCE)
+FetchContent_Declare(
+  qcbor
+  URL https://codeload.github.com/laurencelundblade/QCBOR/tar.gz/930708bb86481e88879eb1d87fd4d664f1d69503
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_MakeAvailable(qcbor)
+
 add_library(axlic_core STATIC
   src/core/runtime_license.cpp
   src/wire/credential.cpp
+  src/wire/qcbor_codec.cpp
 )
 target_compile_features(axlic_core PUBLIC cxx_std_20)
 target_include_directories(axlic_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(axlic_core PRIVATE bcrypt)
+target_link_libraries(axlic_core PRIVATE bcrypt qcbor::qcbor)
 axlic_enable_warnings(axlic_core)
 
 add_library(axlic_a0_fixture_adapter STATIC src/core/a0_fixture_adapter.cpp)
