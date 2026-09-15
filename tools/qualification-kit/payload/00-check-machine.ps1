@@ -1,11 +1,14 @@
 ﻿[CmdletBinding()]
 param(
     [switch]$ClassificationOnly,
-    [string]$ReportPath = (Join-Path $PSScriptRoot 'evidence\environment-report.json')
+    [string]$ReportPath
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($ReportPath)) {
+    $ReportPath = Join-Path $PSScriptRoot 'evidence\environment-report.json'
+}
 . (Join-Path $PSScriptRoot 'Kit-Common.ps1')
 
 try {

@@ -100,6 +100,12 @@ class RuntimeKitContractTest(unittest.TestCase):
         result = json.loads(completed.stdout.strip().splitlines()[-1])
         return result, Path(str(result["zip_path"]))
 
+    def extract(self, archive: Path, directory_name: str) -> Path:
+        extracted = self.root / directory_name
+        with zipfile.ZipFile(archive) as bundle:
+            bundle.extractall(extracted)
+        return extracted / "AXL-V1-A1-Physical-TPM-Runtime-Kit"
+
     def test_assembled_zip_is_exact_result_bound_and_self_verifying(self) -> None:
         result, archive = self.assemble()
         expected_name = "AXL-V1-A1-Physical-TPM-Runtime-Kit-a1a37d07.zip"
@@ -173,10 +179,7 @@ class RuntimeKitContractTest(unittest.TestCase):
 
     def test_machine_check_runs_without_development_tools_and_reports_nonphysical_uncertainty(self) -> None:
         _, archive = self.assemble()
-        extracted = self.root / "machine-check"
-        with zipfile.ZipFile(archive) as bundle:
-            bundle.extractall(extracted)
-        kit = extracted / "AXL-V1-A1-Physical-TPM-Runtime-Kit"
+        kit = self.extract(archive, "machine-check")
         report = kit / "evidence" / "test-environment.json"
         restricted = os.environ.copy()
         restricted["PATH"] = os.pathsep.join(
@@ -206,6 +209,48 @@ class RuntimeKitContractTest(unittest.TestCase):
         self.assertEqual(environment["development_tools_required"], [])
         self.assertEqual(environment["physical_tpm_attestation"]["automatic_detection"], "inconclusive")
         self.assertTrue(environment["physical_tpm_attestation"]["reviewer_physical_machine_confirmation_required"])
+
+    def test_machine_check_default_report_path_resolves_in_fresh_windows_powershell_5_1_process(self) -> None:
+        _, archive = self.assemble()
+        kit = self.extract(archive, "default-report")
+        completed = run(
+            [
+                str(POWERSHELL),
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(kit / "00-check-machine.ps1"),
+                "-ClassificationOnly",
+            ],
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr + completed.stdout)
+        report = kit / "evidence" / "environment-report.json"
+        self.assertTrue(report.is_file())
+        environment = json.loads(report.read_text(encoding="utf-8-sig"))
+        self.assertIn(environment["qualification_status"], {"CANDIDATE_PHYSICAL_MACHINE", "DRY_RUN_ONLY"})
+
+    def test_initial_wrapper_does_not_read_undefined_last_exit_code_after_powershell_scripts(self) -> None:
+        _, archive = self.assemble()
+        kit = self.extract(archive, "strict-wrapper")
+        completed = run(
+            [
+                str(POWERSHELL),
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(kit / "01-run-initial.ps1"),
+            ],
+            check=False,
+        )
+        combined = completed.stdout + completed.stderr
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertNotIn("LASTEXITCODE", combined)
+        self.assertIn("NOT_VALID_FOR_T-A1-04", combined)
 
     def test_all_powershell_entrypoints_parse(self) -> None:
         scripts = [

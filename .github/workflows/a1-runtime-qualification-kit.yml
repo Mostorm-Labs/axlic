@@ -180,9 +180,9 @@ jobs:
             throw 'final axlic hash binding failed'
           }
           & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass `
-            -File "$kit\00-check-machine.ps1" -ClassificationOnly -ReportPath "$kit\evidence\hosted-dry-run.json" | Out-Host
+            -File "$kit\00-check-machine.ps1" -ClassificationOnly | Out-Host
           if ($LASTEXITCODE -ne 0) { throw 'hosted environment classification smoke failed' }
-          $environment = Get-Content -Raw "$kit\evidence\hosted-dry-run.json" | ConvertFrom-Json
+          $environment = Get-Content -Raw "$kit\evidence\environment-report.json" | ConvertFrom-Json
           if ($environment.qualification_status -ne 'DRY_RUN_ONLY' -or $environment.notices -notcontains 'NOT_VALID_FOR_T-A1-04') {
             throw 'hosted VM/server was not rejected as T-A1-04 evidence'
           }

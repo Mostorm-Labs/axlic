@@ -7,11 +7,9 @@ $ErrorActionPreference = 'Stop'
 
 try {
     & (Join-Path $PSScriptRoot 'VERIFY-KIT.ps1') | Out-Host
-    if ($LASTEXITCODE -ne 0) { throw 'KIT_INTEGRITY_FAILED' }
     $manifest = Assert-KitBinding $PSScriptRoot
     $environmentPath = Join-Path $PSScriptRoot 'evidence\environment-initial.json'
     & (Join-Path $PSScriptRoot '00-check-machine.ps1') -ClassificationOnly -ReportPath $environmentPath | Out-Host
-    if ($LASTEXITCODE -ne 0) { throw 'ENVIRONMENT_CHECK_FAILED' }
     $environment = Read-KitJson $environmentPath
     if ($environment.qualification_status -ne 'CANDIDATE_PHYSICAL_MACHINE') {
         throw 'DRY_RUN_ONLY: NOT_VALID_FOR_T-A1-04'

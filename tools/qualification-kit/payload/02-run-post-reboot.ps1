@@ -7,7 +7,6 @@ $ErrorActionPreference = 'Stop'
 
 try {
     & (Join-Path $PSScriptRoot 'VERIFY-KIT.ps1') | Out-Host
-    if ($LASTEXITCODE -ne 0) { throw 'KIT_INTEGRITY_FAILED' }
     $manifest = Assert-KitBinding $PSScriptRoot
     $sessionPath = Join-Path $PSScriptRoot 'output\qualification-session.json'
     $session = Read-KitJson $sessionPath
@@ -19,7 +18,6 @@ try {
 
     $environmentPath = Join-Path $PSScriptRoot 'evidence\environment-post-reboot.json'
     & (Join-Path $PSScriptRoot '00-check-machine.ps1') -ClassificationOnly -ReportPath $environmentPath | Out-Host
-    if ($LASTEXITCODE -ne 0) { throw 'ENVIRONMENT_CHECK_FAILED' }
     $environment = Read-KitJson $environmentPath
     if ($environment.qualification_status -ne 'CANDIDATE_PHYSICAL_MACHINE') {
         throw 'DRY_RUN_ONLY: NOT_VALID_FOR_T-A1-04'
@@ -47,7 +45,6 @@ try {
     }
 
     & (Join-Path $PSScriptRoot '03-package-evidence.ps1') -CorrelationId ([string]$session.correlation_id) | Out-Host
-    if ($LASTEXITCODE -ne 0) { throw 'EVIDENCE_PACKAGING_FAILED' }
     Write-Host ''
     Write-Host 'POST-REBOOT 阶段完成。请将 output 目录中的 Evidence ZIP 上传回 ChatGPT/Aegis 控制会话。'
 } catch {
