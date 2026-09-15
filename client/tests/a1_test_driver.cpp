@@ -267,8 +267,9 @@ int prepare_protected_root(const std::filesystem::path& root) {
       CreateWellKnownSid(WinBuiltinUsersSid, nullptr, users_sid.data(), &users_size) != FALSE;
   bool system_full{};
   bool administrators_full{};
-  bool users_read_execute{};
-  bool only_expected_aces = dacl != nullptr && dacl->AceCount == 3U;
+  bool users_root_read_execute{};
+  bool users_children_read_execute{};
+  bool only_expected_aces = dacl != nullptr && dacl->AceCount == 4U;
   if (sids_ready && dacl != nullptr) {
     for (DWORD index = 0; index < dacl->AceCount; ++index) {
       void* raw_ace{};
@@ -278,22 +279,31 @@ int prepare_protected_root(const std::filesystem::path& root) {
       }
       auto* ace = static_cast<ACCESS_ALLOWED_ACE*>(raw_ace);
       auto* sid = &ace->SidStart;
-      const auto inheritance = static_cast<BYTE>(OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE);
-      if (ace->Header.AceType != ACCESS_ALLOWED_ACE_TYPE || (ace->Header.AceFlags & inheritance) != inheritance) {
+      constexpr auto inheritance = static_cast<BYTE>(OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE);
+      if (ace->Header.AceType != ACCESS_ALLOWED_ACE_TYPE) {
         only_expected_aces = false;
       } else if (EqualSid(sid, system_sid.data()) != FALSE) {
-        system_full = ace->Mask == FILE_ALL_ACCESS;
+        system_full = ace->Header.AceFlags == inheritance && ace->Mask == FILE_ALL_ACCESS;
       } else if (EqualSid(sid, administrators_sid.data()) != FALSE) {
-        administrators_full = ace->Mask == FILE_ALL_ACCESS;
+        administrators_full = ace->Header.AceFlags == inheritance && ace->Mask == FILE_ALL_ACCESS;
       } else if (EqualSid(sid, users_sid.data()) != FALSE) {
-        users_read_execute = ace->Mask == (GENERIC_READ | GENERIC_EXECUTE);
+        constexpr auto child_inheritance = static_cast<BYTE>(inheritance | INHERIT_ONLY_ACE);
+        if (ace->Header.AceFlags == 0U && ace->Mask == (FILE_GENERIC_READ | FILE_GENERIC_EXECUTE)) {
+          users_root_read_execute = true;
+        } else if (
+            ace->Header.AceFlags == child_inheritance && ace->Mask == (GENERIC_READ | GENERIC_EXECUTE)) {
+          users_children_read_execute = true;
+        } else {
+          only_expected_aces = false;
+        }
       } else {
         only_expected_aces = false;
       }
     }
   }
   LocalFree(descriptor);
-  const bool valid = protected_dacl && only_expected_aces && system_full && administrators_full && users_read_execute;
+  const bool valid = protected_dacl && only_expected_aces && system_full && administrators_full &&
+                     users_root_read_execute && users_children_read_execute;
   return emit({{"code", valid ? "OK" : "ACL_INVALID"}, {"acl_valid", valid}}, valid ? 0 : 3);
 }
 
