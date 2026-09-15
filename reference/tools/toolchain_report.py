@@ -21,6 +21,7 @@ def main() -> None:
     parser.add_argument("--build-dir", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--implementation-revision", required=True)
+    parser.add_argument("--artifact-id", default="AXL-V1-A0-build-toolchain")
     args = parser.parse_args()
     cache = (args.build_dir / "CMakeCache.txt").read_text(encoding="utf-8", errors="replace")
     metadata_files = list((args.build_dir / "CMakeFiles").glob("*/CMakeCXXCompiler.cmake"))
@@ -45,7 +46,7 @@ def main() -> None:
         raise SystemExit("CMAKE_COMMAND missing")
     cmake_command = cmake_match.group(1).strip()
     report = {
-        "artifact_id": "AXL-V1-A0-build-toolchain",
+        "artifact_id": args.artifact_id,
         "cmake": output([cmake_command, "--version"]).splitlines()[0],
         "compiler": str(compiler),
         "compiler_family_version": "MSVC 19.44 / toolset 14.44",
