@@ -1,0 +1,218 @@
+name: A1 runtime-only physical TPM qualification kit
+
+on:
+  push:
+    branches:
+      - codex/axl-v1-a1-tpm-runtime-kit
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  SOURCE_REVISION: a1a37d07d421320d95b7d49ed94ad0ffa7c3cd25
+  PYTHON_VERSION: 3.13.15
+  PYTHON_PACKAGE_SHA256: d1f04d990aee1253d8569e8e5104e30fa9f5fa830899f14843448872d936a2cf
+  KIT_ARTIFACT_NAME: AXL-V1-A1-Physical-TPM-Runtime-Kit-a1a37d07
+
+jobs:
+  runtime-kit:
+    runs-on: windows-2022
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out packaging-only tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: packaging
+
+      - name: Check out exact A1 source authority
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: a1a37d07d421320d95b7d49ed94ad0ffa7c3cd25
+          path: source
+
+      - name: Enforce exact source and packaging-only delta
+        shell: pwsh
+        run: |
+          if ((git -C source rev-parse HEAD) -ne $env:SOURCE_REVISION) { throw 'exact A1 source checkout failed' }
+          $changed = @(git -C packaging diff --name-only "$env:SOURCE_REVISION...HEAD")
+          $forbidden = @($changed | Where-Object {
+            $_ -match '^client/(src|include)/' -or
+            $_ -match '^server/' -or
+            $_ -match '^\.aegis/packages/' -or
+            $_ -match '^reference/vectors/'
+          })
+          if ($forbidden.Count -ne 0) { throw "packaging branch changed forbidden A1 surfaces: $($forbidden -join ', ')" }
+
+      - name: Install frozen build Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: 3.13.15
+
+      - name: Install frozen CMake
+        run: python -m pip install --disable-pip-version-check cmake==4.4.2 cryptography==50.0.1
+
+      - name: Verify frozen build toolchain
+        shell: pwsh
+        run: |
+          if ((cmake --version | Select-Object -First 1) -ne 'cmake version 4.4.2') { throw 'CMake 4.4.2 is required' }
+          if (-not (Test-Path 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0')) { throw 'Windows SDK 10.0.26100.0 is required' }
+
+      - name: Configure exact A1 x64 Release
+        run: >-
+          cmake -S source -B build
+          -G "Visual Studio 17 2022"
+          -A x64
+          -T v143
+          -DCMAKE_SYSTEM_VERSION=10.0.26100.0
+
+      - name: Build exact A1 production and regressions
+        run: cmake --build build --config Release --parallel
+
+      - name: Run existing exact-result A1 regression suite
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path evidence | Out-Null
+          ctest --test-dir build -C Release --output-on-failure --output-junit "$PWD\evidence\ctest.xml"
+
+      - name: Resolve build job identity
+        id: job_identity
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json' }
+          $uri = "https://api.github.com/repos/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID/attempts/$env:GITHUB_RUN_ATTEMPT/jobs"
+          $response = Invoke-RestMethod -Headers $headers -Uri $uri
+          $job = @($response.jobs | Where-Object { $_.name -eq 'runtime-kit' }) | Select-Object -First 1
+          if ($null -eq $job) { throw 'unable to resolve current build job id' }
+          "job_id=$($job.id)" >> $env:GITHUB_OUTPUT
+
+      - name: Inspect runtime dependencies and locate redistributable CRT
+        id: runtime
+        shell: pwsh
+        run: |
+          $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+          $vsInstall = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vsInstall) { throw 'MSVC v143 build machine unavailable' }
+          $dumpbin = Get-ChildItem "$vsInstall\VC\Tools\MSVC" -Filter dumpbin.exe -Recurse |
+            Where-Object { $_.FullName -match '\\bin\\Hostx64\\x64\\dumpbin\.exe$' } |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if ($null -eq $dumpbin) { throw 'dumpbin unavailable on build machine' }
+          $toolset = $dumpbin.Directory.Parent.Parent.Parent.Name
+          $cl = Join-Path $dumpbin.Directory.FullName 'cl.exe'
+          $compilerOutput = (& $cl 2>&1 | Out-String)
+          if ($compilerOutput -notmatch 'Version\s+(?<version>[0-9.]+)') { throw 'unable to identify MSVC version' }
+          $msvc = $Matches['version']
+          & $dumpbin.FullName /dependents "$PWD\build\client\Release\axlic.exe" |
+            Set-Content -LiteralPath "$PWD\evidence\runtime-dependencies.txt" -Encoding UTF8
+          $vcRuntime = Get-ChildItem "$vsInstall\VC\Redist\MSVC" -Directory |
+            ForEach-Object { Join-Path $_.FullName 'x64\Microsoft.VC143.CRT' } |
+            Where-Object { Test-Path -LiteralPath $_ } |
+            Sort-Object -Descending | Select-Object -First 1
+          if (-not $vcRuntime) { throw 'app-local Microsoft VC143 CRT unavailable' }
+          "toolset=$toolset" >> $env:GITHUB_OUTPUT
+          "msvc=$msvc" >> $env:GITHUB_OUTPUT
+          "vc_runtime=$vcRuntime" >> $env:GITHUB_OUTPUT
+          "dependency_report=$PWD\evidence\runtime-dependencies.txt" >> $env:GITHUB_OUTPUT
+
+      - name: Download and verify official portable Python
+        id: python_runtime
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path downloads, portable-python | Out-Null
+          $archive = "$PWD\downloads\python-$env:PYTHON_VERSION-embed-amd64.zip"
+          Invoke-WebRequest "https://www.python.org/ftp/python/$env:PYTHON_VERSION/python-$env:PYTHON_VERSION-embed-amd64.zip" -OutFile $archive
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $archive).Hash.ToLowerInvariant()
+          if ($actual -ne $env:PYTHON_PACKAGE_SHA256) { throw "portable Python hash mismatch: $actual" }
+          $runtime = "$PWD\portable-python\python-$env:PYTHON_VERSION-embed-amd64"
+          New-Item -ItemType Directory -Path $runtime | Out-Null
+          Expand-Archive -LiteralPath $archive -DestinationPath $runtime
+          & "$runtime\python.exe" "$PWD\source\reference\tools\a1_physical_tpm.py" --help | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw 'portable Python cannot invoke the frozen oracle' }
+          "runtime=$runtime" >> $env:GITHUB_OUTPUT
+
+      - name: Run runtime-kit contract tests
+        run: python packaging/tools/qualification-kit/tests/test_runtime_kit.py
+
+      - name: Assemble exact-result runtime-only kit
+        id: assemble
+        shell: pwsh
+        run: |
+          $resultText = & "$PWD\packaging\tools\qualification-kit\New-RuntimeKit.ps1" `
+            -AxlicExe "$PWD\build\client\Release\axlic.exe" `
+            -PythonRuntimeDirectory '${{ steps.python_runtime.outputs.runtime }}' `
+            -PythonPackageSha256 $env:PYTHON_PACKAGE_SHA256 `
+            -OraclePath "$PWD\source\reference\tools\a1_physical_tpm.py" `
+            -VcRuntimeDirectory '${{ steps.runtime.outputs.vc_runtime }}' `
+            -RuntimeDependencyReport '${{ steps.runtime.outputs.dependency_report }}' `
+            -OutputDirectory "$PWD\dist" `
+            -SourceRevision $env:SOURCE_REVISION `
+            -PackagingRevision '${{ github.sha }}' `
+            -BuildRun '${{ github.run_id }}' `
+            -BuildAttempt '${{ github.run_attempt }}' `
+            -BuildJob '${{ steps.job_identity.outputs.job_id }}' `
+            -CMakeVersion '4.4.2' `
+            -MsvcVersion '${{ steps.runtime.outputs.msvc }}' `
+            -ToolsetVersion '${{ steps.runtime.outputs.toolset }}' `
+            -WindowsSdk '10.0.26100.0'
+          $result = $resultText | Select-Object -Last 1 | ConvertFrom-Json
+          "zip_path=$($result.zip_path)" >> $env:GITHUB_OUTPUT
+          "kit_sha256=$($result.kit_sha256)" >> $env:GITHUB_OUTPUT
+          "axlic_sha256=$($result.axlic_sha256)" >> $env:GITHUB_OUTPUT
+
+      - name: Extract and verify final kit on Windows PowerShell 5.1
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path verify-extracted | Out-Null
+          Expand-Archive -LiteralPath '${{ steps.assemble.outputs.zip_path }}' -DestinationPath verify-extracted
+          $kit = "$PWD\verify-extracted\AXL-V1-A1-Physical-TPM-Runtime-Kit"
+          & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$kit\VERIFY-KIT.ps1"
+          if ($LASTEXITCODE -ne 0) { throw 'extracted kit integrity verification failed' }
+          & "$kit\runtime\python-$env:PYTHON_VERSION-embed-amd64\python.exe" "$kit\oracle\a1_physical_tpm.py" --help | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw 'bundled Python/oracle smoke test failed after extraction' }
+          $manifest = Get-Content -Raw "$kit\manifest\build-manifest.json" | ConvertFrom-Json
+          if ($manifest.source_revision -ne $env:SOURCE_REVISION) { throw 'final manifest source binding failed' }
+          if ((Get-FileHash -Algorithm SHA256 "$kit\bin\axlic.exe").Hash.ToLowerInvariant() -ne $manifest.axlic_exe_sha256) {
+            throw 'final axlic hash binding failed'
+          }
+          & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass `
+            -File "$kit\00-check-machine.ps1" -ClassificationOnly -ReportPath "$kit\evidence\hosted-dry-run.json" | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw 'hosted environment classification smoke failed' }
+          $environment = Get-Content -Raw "$kit\evidence\hosted-dry-run.json" | ConvertFrom-Json
+          if ($environment.qualification_status -ne 'DRY_RUN_ONLY' -or $environment.notices -notcontains 'NOT_VALID_FOR_T-A1-04') {
+            throw 'hosted VM/server was not rejected as T-A1-04 evidence'
+          }
+
+      - name: Record artifact provenance
+        shell: pwsh
+        run: |
+          $provenance = [ordered]@{
+            artifact_id = $env:KIT_ARTIFACT_NAME
+            source_revision = $env:SOURCE_REVISION
+            packaging_revision = '${{ github.sha }}'
+            build = [ordered]@{ run = '${{ github.run_id }}'; attempt = '${{ github.run_attempt }}'; job = '${{ steps.job_identity.outputs.job_id }}' }
+            axlic_exe_sha256 = '${{ steps.assemble.outputs.axlic_sha256 }}'
+            kit_sha256 = '${{ steps.assemble.outputs.kit_sha256 }}'
+            python_package_sha256 = $env:PYTHON_PACKAGE_SHA256
+            vc_runtime_strategy = 'app-local Microsoft VC143 CRT'
+            t_a1_04 = 'STILL_PENDING_PHYSICAL_MACHINE'
+            p34 = 'NOT_EVALUATED'
+          }
+          $provenance | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath "$PWD\dist\kit-provenance.json" -Encoding UTF8
+          '${{ steps.assemble.outputs.kit_sha256 }}  AXL-V1-A1-Physical-TPM-Runtime-Kit-a1a37d07.zip' |
+            Set-Content -LiteralPath "$PWD\dist\AXL-V1-A1-Physical-TPM-Runtime-Kit-a1a37d07.zip.sha256" -Encoding ASCII
+
+      - name: Upload reviewer-accessible runtime kit
+        id: upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: AXL-V1-A1-Physical-TPM-Runtime-Kit-a1a37d07
+          path: |
+            dist/AXL-V1-A1-Physical-TPM-Runtime-Kit-a1a37d07.zip
+            dist/AXL-V1-A1-Physical-TPM-Runtime-Kit-a1a37d07.zip.sha256
+            dist/kit-provenance.json
+          if-no-files-found: error
+          retention-days: 30
