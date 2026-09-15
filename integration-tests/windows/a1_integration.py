@@ -123,26 +123,9 @@ def software_ksp_concurrency(driver: Path, root: Path) -> list[dict[str, str]]:
 
 def protected_acl(driver: Path, root: Path) -> list[dict[str, str]]:
     state_root = root / "protected-acl"
-    run(driver, ["prepare-protected-root", str(state_root)])
-    completed = subprocess.run(
-        [
-            "powershell",
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            "& { param($p) (Get-Acl -LiteralPath $p).Sddl }",
-            str(state_root),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        shell=False,
-    )
-    sddl = completed.stdout.strip()
-    required = ("D:P", "(A;OICI;FA;;;SY)", "(A;OICI;FA;;;BA)", "(A;OICI;GRGX;;;BU)")
-    if any(fragment not in sddl for fragment in required):
-        raise AssertionError(f"protected root DACL does not match the frozen principal/access contract: {sddl}")
+    result = run(driver, ["prepare-protected-root", str(state_root)])
+    if result.get("acl_valid") is not True:
+        raise AssertionError(f"protected root DACL does not match the frozen principal/access contract: {result}")
     return [{"id": "protected-programdata-equivalent-dacl", "result": "PASS"}]
 
 

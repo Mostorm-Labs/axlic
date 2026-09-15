@@ -8,6 +8,7 @@
 
 #define NOMINMAX
 #include <windows.h>
+#include <aclapi.h>
 #include <bcrypt.h>
 #include <ncrypt.h>
 
@@ -238,7 +239,62 @@ int cleanup_key(const std::filesystem::path& root) {
 int prepare_protected_root(const std::filesystem::path& root) {
   axlic::windows::WindowsStateRootSecurity security;
   const auto result = security.prepare(root);
-  return emit({{"code", state_code(result)}}, result == axlic::core::StateStoreOutcome::ok ? 0 : 3);
+  if (result != axlic::core::StateStoreOutcome::ok) {
+    return emit({{"code", state_code(result)}}, 3);
+  }
+  PACL dacl{};
+  PSECURITY_DESCRIPTOR descriptor{};
+  auto mutable_root = root.native();
+  if (GetNamedSecurityInfoW(
+          mutable_root.data(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, &dacl, nullptr,
+          &descriptor) != ERROR_SUCCESS) {
+    return emit({{"code", "INTERNAL_ERROR"}}, 4);
+  }
+  SECURITY_DESCRIPTOR_CONTROL control{};
+  DWORD revision{};
+  const bool protected_dacl =
+      GetSecurityDescriptorControl(descriptor, &control, &revision) != FALSE && (control & SE_DACL_PROTECTED) != 0;
+  std::array<std::uint8_t, SECURITY_MAX_SID_SIZE> system_sid{};
+  std::array<std::uint8_t, SECURITY_MAX_SID_SIZE> administrators_sid{};
+  std::array<std::uint8_t, SECURITY_MAX_SID_SIZE> users_sid{};
+  DWORD system_size = static_cast<DWORD>(system_sid.size());
+  DWORD administrators_size = static_cast<DWORD>(administrators_sid.size());
+  DWORD users_size = static_cast<DWORD>(users_sid.size());
+  const bool sids_ready =
+      CreateWellKnownSid(WinLocalSystemSid, nullptr, system_sid.data(), &system_size) != FALSE &&
+      CreateWellKnownSid(WinBuiltinAdministratorsSid, nullptr, administrators_sid.data(), &administrators_size) !=
+          FALSE &&
+      CreateWellKnownSid(WinBuiltinUsersSid, nullptr, users_sid.data(), &users_size) != FALSE;
+  bool system_full{};
+  bool administrators_full{};
+  bool users_read_execute{};
+  bool only_expected_aces = dacl != nullptr && dacl->AceCount == 3U;
+  if (sids_ready && dacl != nullptr) {
+    for (DWORD index = 0; index < dacl->AceCount; ++index) {
+      void* raw_ace{};
+      if (GetAce(dacl, index, &raw_ace) == FALSE) {
+        only_expected_aces = false;
+        continue;
+      }
+      auto* ace = static_cast<ACCESS_ALLOWED_ACE*>(raw_ace);
+      auto* sid = &ace->SidStart;
+      const auto inheritance = static_cast<BYTE>(OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE);
+      if (ace->Header.AceType != ACCESS_ALLOWED_ACE_TYPE || (ace->Header.AceFlags & inheritance) != inheritance) {
+        only_expected_aces = false;
+      } else if (EqualSid(sid, system_sid.data()) != FALSE) {
+        system_full = ace->Mask == FILE_ALL_ACCESS;
+      } else if (EqualSid(sid, administrators_sid.data()) != FALSE) {
+        administrators_full = ace->Mask == FILE_ALL_ACCESS;
+      } else if (EqualSid(sid, users_sid.data()) != FALSE) {
+        users_read_execute = ace->Mask == (GENERIC_READ | GENERIC_EXECUTE);
+      } else {
+        only_expected_aces = false;
+      }
+    }
+  }
+  LocalFree(descriptor);
+  const bool valid = protected_dacl && only_expected_aces && system_full && administrators_full && users_read_execute;
+  return emit({{"code", valid ? "OK" : "ACL_INVALID"}, {"acl_valid", valid}}, valid ? 0 : 3);
 }
 
 }  // namespace
