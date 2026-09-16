@@ -30,7 +30,7 @@ The latest root Authority records P00-P20 and P30 as accepted/closed. AXL-V1-A0 
 | AXL-V1-P01 | 01 — P01 Product Research — Licensing Pattern Challenge v0.1 | `docs/authority/discovery/P01-product-research.md` | cutover |
 | AXL-V1-P02 | 02 — P02 Product Requirements — AxLicense V1 v0.1 | `docs/authority/discovery/P02-product-requirements.md` | cutover |
 | AXL-V1-P03 | 03 — P03 Capability Traceability — AxLicense V1 v0.1 | `docs/authority/discovery/P03-capability-traceability.md` | cutover |
-| AXL-V1-P10 | 10 — P10 Product Object Model — AxLicense V1 v0.1 | `docs/authority/modeling/P10-product-object-model.md` | pending |
+| AXL-V1-P10 | 10 — P10 Product Object Model — AxLicense V1 v0.1 | `docs/authority/modeling/P10-product-object-model.md` | cutover |
 | AXL-V1-P11 | 11 — P11 Interaction & Behavior — AxLicense V1 v0.1 | `docs/authority/modeling/P11-interaction-behavior.md` | pending |
 | AXL-V1-P12 | 12 — P12 Semantic Schema — AxLicense V1 v0.1 | `docs/authority/modeling/P12-semantic-schema.md` | pending |
 | AXL-V1-P13 | 13 — P13 Operation & Mutation Model — AxLicense V1 v0.1 | `docs/authority/modeling/P13-operation-mutation-model.md` | pending |
@@ -115,6 +115,14 @@ Current Authority target after merge: `docs/authority/discovery/P03-capability-t
 
 Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c81f48247e0af39e23326`.
 
-## M5 entry condition
+## M5 — P10 cutover
 
-M5 starts with P10. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
+P10 was migrated as a location-only Authority move. The repository copy preserves the durable product-world taxonomy, value/session/derived-state classification, aggregate and identity invariants, the Device Assertion/Product Device Association targeted reconciliation, the full historical FR-018 object model and supersession disposition, and the current FR-019 unified first-run/cross-product entitlement reconciliation. No object classification, authority boundary, supersession decision, entitlement constraint boundary, or downstream handoff semantic is changed by the migration.
+
+Current Authority target after merge: `docs/authority/modeling/P10-product-object-model.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c8182b7e4d48fdaccfc7e`.
+
+## M6 entry condition
+
+M6 starts with P11. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
