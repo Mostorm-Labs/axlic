@@ -37,7 +37,7 @@ The latest root Authority records P00-P20 and P30 as accepted/closed. AXL-V1-A0 
 | AXL-V1-P14 | 14 — P14 System Architecture — AxLicense V1 v0.1 | `docs/authority/architecture/P14-system-architecture.md` | cutover |
 | AXL-V1-P15 | 15 — P15 Module Design — AxLicense V1 v0.1 | `docs/authority/architecture/P15-module-design.md` | cutover |
 | AXL-V1-P16 | 16 — P16 Runtime Data Flow — AxLicense V1 v0.1 | `docs/authority/architecture/P16-runtime-data-flow.md` | cutover |
-| AXL-V1-P16.1 | 16.1 — Runtime Flow Atlas — 总览、状态面与读图约定 | `docs/authority/architecture/runtime-flow-atlas/16.1-overview.md` | pending |
+| AXL-V1-P16.1 | 16.1 — Runtime Flow Atlas — 总览、状态面与读图约定 | `docs/authority/architecture/runtime-flow-atlas/16.1-overview.md` | cutover |
 | AXL-V1-P16.2 | 16.2 — Runtime Flow Atlas — 本地运行、DeviceIdentity 与设备注册 | `docs/authority/architecture/runtime-flow-atlas/16.2-local-identity-registration.md` | pending |
 | AXL-V1-P16.3 | 16.3 — Runtime Flow Atlas — LicenseGrant、在线激活与离线激活 | `docs/authority/architecture/runtime-flow-atlas/16.3-activation.md` | pending |
 | AXL-V1-P16.4 | 16.4 — Runtime Flow Atlas — 工厂 Provisioning 与 Legacy Migration | `docs/authority/architecture/runtime-flow-atlas/16.4-factory-legacy.md` | pending |
@@ -173,6 +173,16 @@ Historical source retained as evidence: `https://app.notion.com/p/3d94c57a590c81
 
 The 16.1–16.9 Runtime Flow Atlas artifacts remain Current Authority in Notion and will be cut over individually.
 
-## M12 entry condition
+## M12 — P16.1 Runtime Flow Atlas cutover
 
-M12 starts with P16.1 Runtime Flow Atlas — 总览、状态面与读图约定. Migration remains per-artifact: fetch the complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update evidence/state/ledger, then mark that Atlas artifact `cutover`. P16.2–P16.9 remain pending until their individual cutovers. Authority migration remains independent of the implementation lifecycle; `active_stage` remains derived from `.aegis` authored manifests and repository evidence, currently P31 AXL-V1-A2 Task Packaging.
+P16.1 was migrated as a location-only move of the P16 explanatory child artifact. The repository copy preserves the four-state-plane overview, the three durable commit model, the fixed reading convention for subsequent flow diagrams, the two Mermaid diagrams, and the generic failure rule that response loss is not rollback and retry is not a new business request. The source explicitly states that this artifact is derived from P16 Current Authority and introduces no product requirement or semantic change; therefore no new independent `.aegis/authorities.json` Current Authority entry is created.
+
+Current target after merge: `docs/authority/architecture/runtime-flow-atlas/16.1-overview.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d94c57a590c8173a2e5cf1a1f42361f`.
+
+P16.2–P16.9 remain in Notion until their individual cutovers.
+
+## M13 entry condition
+
+M13 starts with P16.2 Runtime Flow Atlas — 本地运行、DeviceIdentity 与设备注册. Migration remains per-artifact: fetch the complete Notion source, reproduce it faithfully in Markdown, verify diagrams/explanations and source-derived invariants, update evidence/state/ledger, then mark that Atlas artifact `cutover`. P16.3–P16.9 remain pending until their individual cutovers. Authority migration remains independent of the implementation lifecycle; `active_stage` remains derived from `.aegis` authored manifests and repository evidence, currently P31 AXL-V1-A2 Task Packaging.
