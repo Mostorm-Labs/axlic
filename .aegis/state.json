@@ -12,8 +12,8 @@
   "authority_migration": {
     "status": "migration_active",
     "current_source_policy": "per-artifact-cutover",
-    "completed_items": ["AXL-V1-P00","AXL-V1-P01","AXL-V1-P02","AXL-V1-P03","AXL-V1-P10","AXL-V1-P11","AXL-V1-P12","AXL-V1-P13","AXL-V1-P14","AXL-V1-P15","AXL-V1-P16","AXL-V1-P16.1","AXL-V1-P16.2","AXL-V1-P16.3","AXL-V1-P16.4"],
-    "next_migration_item": "AXL-V1-P16.5"
+    "completed_items": ["AXL-V1-P00","AXL-V1-P01","AXL-V1-P02","AXL-V1-P03","AXL-V1-P10","AXL-V1-P11","AXL-V1-P12","AXL-V1-P13","AXL-V1-P14","AXL-V1-P15","AXL-V1-P16","AXL-V1-P16.1","AXL-V1-P16.2","AXL-V1-P16.3","AXL-V1-P16.4","AXL-V1-P16.5"],
+    "next_migration_item": "AXL-V1-P16.6"
   },
   "blocking_gates": [],
   "integration_conformance": [
@@ -37,7 +37,8 @@
     "P16.2 explanatory Runtime Flow Atlas child has been relocated to docs/authority/architecture/runtime-flow-atlas/16.2-local-identity-registration.md without semantic change; its Notion source is retained as historical evidence. The artifact remains derived from AXL-V1-P16 and introduces no independent lifecycle Authority; RUN-01, ID-01, and ID-02 preserve local verification, provider pinning, canonical registration commit, same-correlation retry, and crash-safe local association recovery semantics.",
     "P16.3 explanatory Runtime Flow Atlas child has been relocated to docs/authority/architecture/runtime-flow-atlas/16.3-activation.md without semantic change; its Notion source is retained as historical evidence. The artifact remains derived from AXL-V1-P16 and introduces no independent lifecycle Authority; LIC-01, ACT-01, and ACT-02 preserve Grant-versus-activation separation, stable entitlement identifiers, atomic canonical activation outcome, same-correlation retry, REHOST_REQUIRED binding protection, offline-request non-authority, and idempotent credential import semantics.",
     "P16.4 explanatory Runtime Flow Atlas child has been relocated to docs/authority/architecture/runtime-flow-atlas/16.4-factory-legacy.md without semantic change; its Notion source is retained as historical evidence. The artifact remains derived from AXL-V1-P16 and introduces no independent lifecycle Authority; FAC-01/FAC-02 and MIG-01-MIG-06 preserve identity-versus-license separation, scoped factory authorization, per-device retry, historical-claim authority, online/offline migration equivalence, Launcher-owned application outbox, approval-versus-license separation, device-bound redemption, canonical migration recovery, and licensed-status watermark removal semantics.",
-    "P16 Runtime Flow Atlas artifacts 16.5-16.9 remain in Notion until individually migrated; the next migration item is AXL-V1-P16.5.",
+    "P16.5 explanatory Runtime Flow Atlas child has been relocated to docs/authority/architecture/runtime-flow-atlas/16.5-entitlement-credential-admin.md without semantic change; its Notion source is retained as historical evidence. The artifact remains derived from AXL-V1-P16 and introduces no independent lifecycle Authority; ADM-01-ADM-05 preserve server-authority-versus-offline-observability separation, expected revision concurrency control, atomic successor credential outcomes, authority_revision-versus-credential_generation separation, verify-before-replace, binding release history, suspend/resume semantics, revoke audit retention, and observable-point convergence semantics.",
+    "P16 Runtime Flow Atlas artifacts 16.6-16.9 remain in Notion until individually migrated; the next migration item is AXL-V1-P16.6.",
     "Remaining human-readable Current Authority is still in Notion until individual cutover.",
     "Authority relocation does not change lifecycle ownership: active_stage remains P31 AXL-V1-A2 Task Packaging and earliest_untrusted_layer remains implementation.",
     "No standalone A1 P32 Notion page was discovered by the M0 scoped search; the root Authority records its lifecycle fact.",
