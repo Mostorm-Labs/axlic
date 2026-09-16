@@ -1,0 +1,125 @@
+name: A1 Windows evidence
+
+on:
+  push:
+    branches:
+      - codex/axl-v1-a1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  a1-release:
+    runs-on: windows-2022
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Install frozen Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: 3.13.15
+
+      - name: Install frozen verification tools
+        run: python -m pip install --disable-pip-version-check cmake==4.4.2 cryptography==50.0.1
+
+      - name: Verify frozen toolchain availability
+        shell: pwsh
+        run: |
+          if ((cmake --version | Select-Object -First 1) -ne 'cmake version 4.4.2') { throw 'CMake 4.4.2 is required' }
+          if (-not (Test-Path 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0')) { throw 'Windows SDK 10.0.26100.0 is required' }
+
+      - name: Configure x64 Release
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -T v143
+
+      - name: Build x64 Release
+        run: cmake --build build --config Release --parallel
+
+      - name: Run frozen unit and process suite
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force evidence | Out-Null
+          $junit = Join-Path $PWD 'evidence/ctest.xml'
+          ctest --test-dir build -C Release --output-on-failure --output-junit $junit
+
+      - name: Run blocking Software KSP and real-process matrix
+        run: >-
+          python integration-tests/windows/a1_integration.py
+          --driver build/client/Release/axlic_a1_test_driver.exe
+          --require-software-ksp
+          --implementation-revision ${{ github.sha }}
+          --report evidence/windows-integration.json
+
+      - name: Produce provider/state/A0 evidence manifests
+        run: >-
+          python reference/tools/a1_evidence_manifest.py
+          --junit evidence/ctest.xml
+          --implementation-revision ${{ github.sha }}
+          --output-dir evidence
+
+      - name: Produce EV-01 production corpus manifest
+        run: >-
+          python reference/tools/ev01_manifest.py
+          --test-exe build/client/Release/axlic_unit_tests.exe
+          --corpus reference/vectors/a0/corpus.json
+          --report evidence/ev01-production.json
+          --implementation-revision ${{ github.sha }}
+
+      - name: Independent canonical and crypto cross-check
+        run: >-
+          python reference/tools/a0_reference.py --check
+          --implementation-revision ${{ github.sha }}
+          --report evidence/independent-reference.json
+
+      - name: Produce inherited A0 CLI report
+        run: >-
+          python client/tests/test_cli.py
+          --exe build/client/Release/axlic_a0_fixture_cli.exe
+          --vectors reference/vectors/a0/corpus.json
+          --valid-state reference/vectors/a0/valid_state.json
+          --absent-state reference/vectors/a0/absent_state.json
+          --implementation-revision ${{ github.sha }}
+          --report evidence/a0-cli-regression.json
+
+      - name: Prove inherited A0 offline boundary
+        run: >-
+          python client/tests/verify_offline_boundary.py
+          --exe build/client/Release/axlic_a0_fixture_cli.exe
+          --build-dir build
+          --state reference/vectors/a0/valid_state.json
+          --implementation-revision ${{ github.sha }}
+          --report evidence/a0-offline-no-server.json
+
+      - name: Produce A1 production CLI disclosure report
+        run: >-
+          python client/tests/test_a1_cli.py
+          --exe build/client/Release/axlic.exe
+          --a0-state reference/vectors/a0/valid_state.json
+          --implementation-revision ${{ github.sha }}
+          --report evidence/a1-cli-contract.json
+
+      - name: Produce A1 identity error-family report
+        run: >-
+          python client/tests/test_a1_cli_scenarios.py
+          --exe build/client/Release/axlic_a1_cli_scenario.exe
+          --implementation-revision ${{ github.sha }}
+          --report evidence/a1-identity-error-families.json
+
+      - name: Record build and toolchain identity
+        run: >-
+          python reference/tools/toolchain_report.py
+          --build-dir build
+          --implementation-revision ${{ github.sha }}
+          --artifact-id AXL-V1-A1-build-toolchain
+          --report evidence/build-toolchain.json
+
+      - name: Upload reviewer evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: AXL-V1-A1-evidence
+          path: evidence
+          if-no-files-found: error
+          retention-days: 30

@@ -1,6 +1,6 @@
 # AxLicense
 
-AxLicense A0 is a Windows C++20 command-line vertical slice that validates a deterministic-CBOR signed credential locally with Windows CNG and evaluates its entitlement snapshot without a server.
+AxLicense is a Windows C++20 command-line client. The A1 slice adds one machine-wide Windows DeviceIdentity backed by a non-exportable persisted CNG P-256 key, TPM-first provider selection, DPAPI-protected ProgramData state, a protected cross-process mutation lock, and crash-safe atomic state replacement. It does not require a server.
 
 ## Build and test
 
@@ -12,11 +12,14 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
 ```
 
-The public A0 commands are:
+The public commands currently implemented are:
 
 ```text
 axlic status
 axlic entitlement <entitlement_id>
+axlic identity
 ```
 
-The checked-in `reference/vectors/a0` corpus and the `AXLIC_A0_FIXTURE_STATE` environment variable are explicitly non-production A0 test adapters. They are not a protected-state or trust-store contract.
+`axlic identity` must be run with machine-state write authority for first establishment. It returns only the public scheme, epoch, and 64-byte P-256 public identity as lowercase hex; provider key names and private material are never part of the CLI contract.
+
+The checked-in `reference/vectors/a0` corpus and `AXLIC_A0_FIXTURE_STATE` remain explicit test-only A0 regression adapters. Production `axlic.exe` does not read that environment variable.

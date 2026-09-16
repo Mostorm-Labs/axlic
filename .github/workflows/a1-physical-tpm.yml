@@ -1,0 +1,78 @@
+name: A1 physical TPM qualification
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Qualification phase
+        required: true
+        type: choice
+        options:
+          - initial
+          - post-reboot
+      correlation_id:
+        description: Shared non-secret correlation ID for both phases
+        required: true
+        type: string
+      expected_result_revision:
+        description: Exact 40-character result revision
+        required: true
+        type: string
+      expected_identity_sha256:
+        description: Initial-phase public identity fingerprint for post-reboot
+        required: false
+        type: string
+      initial_boot_marker:
+        description: Initial-phase boot marker for post-reboot
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  physical-tpm:
+    runs-on: [self-hosted, Windows, X64, axlic-physical-tpm]
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Enforce exact result binding
+        shell: pwsh
+        run: |
+          if ('${{ github.sha }}' -ne '${{ inputs.expected_result_revision }}') { throw 'workflow ref does not match expected result revision' }
+
+      - name: Install frozen Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: 3.13.15
+
+      - name: Install frozen CMake
+        run: python -m pip install --disable-pip-version-check cmake==4.4.2
+
+      - name: Configure x64 Release
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -T v143
+
+      - name: Build production executable
+        run: cmake --build build --config Release --target axlic --parallel
+
+      - name: Run exact-revision TPM phase
+        run: >-
+          python reference/tools/a1_physical_tpm.py
+          --exe build/client/Release/axlic.exe
+          --phase ${{ inputs.phase }}
+          --correlation-id "${{ inputs.correlation_id }}"
+          --implementation-revision ${{ github.sha }}
+          --expected-identity-sha256 "${{ inputs.expected_identity_sha256 }}"
+          --initial-boot-marker "${{ inputs.initial_boot_marker }}"
+          --report evidence/physical-tpm-${{ inputs.phase }}.json
+
+      - name: Upload exact physical TPM phase evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: AXL-V1-A1-physical-TPM-${{ inputs.phase }}
+          path: evidence
+          if-no-files-found: error
+          retention-days: 30
