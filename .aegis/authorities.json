@@ -6,7 +6,7 @@
     {"id":"AXL-V1-P02","scope":"axlicense","kind":"requirement","version":"1","status":"Current","ref":"docs/authority/discovery/P02-product-requirements.md","depends_on":["AXL-V1-P00","AXL-V1-P01"]},
     {"id":"AXL-V1-P03","scope":"axlicense","kind":"capability-traceability","version":"1","status":"Current","ref":"docs/authority/discovery/P03-capability-traceability.md","depends_on":["AXL-V1-P02"]},
     {"id":"AXL-V1-P10","scope":"axlicense","kind":"object","version":"1","status":"Current","ref":"docs/authority/modeling/P10-product-object-model.md","depends_on":["AXL-V1-P02","AXL-V1-P03"]},
-    {"id":"AXL-V1-P11","scope":"axlicense","kind":"behavior","version":"1","status":"Current","ref":"https://app.notion.com/p/3d74c57a590c818ca6d7e7d5811831fb","depends_on":["AXL-V1-P10"]},
+    {"id":"AXL-V1-P11","scope":"axlicense","kind":"behavior","version":"1","status":"Current","ref":"docs/authority/modeling/P11-interaction-behavior.md","depends_on":["AXL-V1-P10"]},
     {"id":"AXL-V1-P12","scope":"axlicense","kind":"schema","version":"1","status":"Current","ref":"https://app.notion.com/p/3d74c57a590c813c93b8cf63f128cf85","depends_on":["AXL-V1-P10","AXL-V1-P11"]},
     {"id":"AXL-V1-P13","scope":"axlicense","kind":"operation","version":"1","status":"Current","ref":"https://app.notion.com/p/3d94c57a590c81108345fac48ed6d2b8","depends_on":["AXL-V1-P12"]},
     {"id":"AXL-V1-P14","scope":"axlicense","kind":"architecture","version":"1","status":"Current","ref":"https://app.notion.com/p/3d94c57a590c81909351e96d9c3469e0","depends_on":["AXL-V1-P13"]},

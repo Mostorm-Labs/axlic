@@ -31,7 +31,7 @@ The latest root Authority records P00-P20 and P30 as accepted/closed. AXL-V1-A0 
 | AXL-V1-P02 | 02 — P02 Product Requirements — AxLicense V1 v0.1 | `docs/authority/discovery/P02-product-requirements.md` | cutover |
 | AXL-V1-P03 | 03 — P03 Capability Traceability — AxLicense V1 v0.1 | `docs/authority/discovery/P03-capability-traceability.md` | cutover |
 | AXL-V1-P10 | 10 — P10 Product Object Model — AxLicense V1 v0.1 | `docs/authority/modeling/P10-product-object-model.md` | cutover |
-| AXL-V1-P11 | 11 — P11 Interaction & Behavior — AxLicense V1 v0.1 | `docs/authority/modeling/P11-interaction-behavior.md` | pending |
+| AXL-V1-P11 | 11 — P11 Interaction & Behavior — AxLicense V1 v0.1 | `docs/authority/modeling/P11-interaction-behavior.md` | cutover |
 | AXL-V1-P12 | 12 — P12 Semantic Schema — AxLicense V1 v0.1 | `docs/authority/modeling/P12-semantic-schema.md` | pending |
 | AXL-V1-P13 | 13 — P13 Operation & Mutation Model — AxLicense V1 v0.1 | `docs/authority/modeling/P13-operation-mutation-model.md` | pending |
 | AXL-V1-P14 | 14 — P14 System Architecture — AxLicense V1 v0.1 | `docs/authority/architecture/P14-system-architecture.md` | pending |
@@ -123,6 +123,14 @@ Current Authority target after merge: `docs/authority/modeling/P10-product-objec
 
 Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c8182b7e4d48fdaccfc7e`.
 
-## M6 entry condition
+## M6 — P11 cutover
 
-M6 starts with P11. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
+P11 was migrated as a location-only Authority move. The repository copy preserves the cross-flow interaction invariants, generic Start/Validate/Commit/Deliver/Complete model, Online/Offline Activation, Rehost/RMA, Factory Identity Provisioning / optional Pre-Activation, Recovery, runtime/refresh/admin behavior, failure classification, Claim/Recovery/Transfer targeted reconciliation, the full historical superseded FR-018 behavior model, the current FR-019 unified first-run/backend-licensing behavior reconciliation, and the Current Authority Catalog Evolution addendum for dynamic entitlement registration and credential refresh. No interaction commit boundary, cancel/retry rule, supersession decision, partial-success semantics, catalog-evolution behavior, or downstream P12 handoff is changed by the migration.
+
+Current Authority target after merge: `docs/authority/modeling/P11-interaction-behavior.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c818ca6d7e7d5811831fb`.
+
+## M7 entry condition
+
+M7 starts with P12. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
