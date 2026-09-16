@@ -12,8 +12,8 @@
   "authority_migration": {
     "status": "migration_active",
     "current_source_policy": "per-artifact-cutover",
-    "completed_items": ["AXL-V1-P00","AXL-V1-P01","AXL-V1-P02","AXL-V1-P03","AXL-V1-P10","AXL-V1-P11","AXL-V1-P12","AXL-V1-P13","AXL-V1-P14","AXL-V1-P15","AXL-V1-P16"],
-    "next_migration_item": "AXL-V1-P16.1"
+    "completed_items": ["AXL-V1-P00","AXL-V1-P01","AXL-V1-P02","AXL-V1-P03","AXL-V1-P10","AXL-V1-P11","AXL-V1-P12","AXL-V1-P13","AXL-V1-P14","AXL-V1-P15","AXL-V1-P16","AXL-V1-P16.1"],
+    "next_migration_item": "AXL-V1-P16.2"
   },
   "blocking_gates": [],
   "integration_conformance": [
@@ -28,12 +28,13 @@
     "P03 Current Authority has been relocated to docs/authority/discovery/P03-capability-traceability.md without semantic change; its Notion source is retained as historical evidence, including FR-016/017, FR-018, and FR-019 targeted traceability history.",
     "P10 Current Authority has been relocated to docs/authority/modeling/P10-product-object-model.md without semantic change; its Notion source is retained as historical evidence, including Device Assertion/Product Association, superseded FR-018, and current FR-019 targeted reconciliation history.",
     "P11 Current Authority has been relocated to docs/authority/modeling/P11-interaction-behavior.md without semantic change; its Notion source is retained as historical evidence, including claim/recovery/transfer reconciliation, superseded FR-018 behavior, current FR-019 behavior, and the current catalog-evolution addendum.",
-    "P12 Current Authority has been relocated to docs/authority/modeling/P12-semantic-schema.md without semantic change; its Notion source is retained as historical evidence, including normative reconciliation amendments, Device Assertion schema reconciliation, superseded FR-018 schema history, and current FR-019 dynamic entitlement/revision/credential-refresh reconciliation.",
+    "P12 Current Authority has been relocated to docs/authority/modeling/P12-semantic-schema.md without semantic change; its Notion source is retained as historical evidence, including normative reconciliation amendments, Device Assertion schema reconciliation, superseded FR-018 schema history, and current FR-019 dynamic-entitlement/revision/credential-refresh reconciliation.",
     "P13 Current Authority has been relocated to docs/authority/modeling/P13-operation-mutation-model.md without semantic change; its Notion source is retained as historical evidence, including Device Assertion operation reconciliation, superseded FR-018 workflow/migration operation history, current FR-019 catalog/grant/credential operation reconciliation, and the ordinary first-run RegisterDeviceIdentity targeted repair.",
     "P14 Current Authority has been relocated to docs/authority/architecture/P14-system-architecture.md without semantic change; its Notion source is retained as historical evidence, including CLI-only deployment reconciliation, diagnostics/safe-logging boundary, Device Assertion architecture, superseded FR-018 migration architecture and ownership correction, and the current FR-019 unified enrollment/dynamic-entitlement/credential-observation reconciliation.",
     "P15 Current Authority has been relocated to docs/authority/architecture/P15-module-design.md without semantic change; its Notion source is retained as historical evidence, including the base CLI/module design, diagnostics and Device Assertion module boundaries, superseded FR-018 migration module reconciliation, and the current FR-019 DeviceRegistrationClient/CredentialSync/Product Backend/Catalog/Grant/CredentialResolver-CredentialIssuance module reconciliation.",
     "P16 Current Authority has been relocated to docs/authority/architecture/P16-runtime-data-flow.md without semantic change; its Notion source is retained as historical evidence, including the base runtime state-plane and failure/recovery traces, the historical candidate-gap and primary-product-journey review, superseded FR-018 migration/provisional runtime reconciliation, and the current FR-019 ordinary registration, Product enrollment/association, commercial convergence, dynamic catalog rollout, Grant revision, credential resolve/reissue, activation, factory, recovery and rehost runtime reconciliation.",
-    "P16 Runtime Flow Atlas artifacts 16.1-16.9 remain Current Authority in Notion until individually migrated; the next migration item is AXL-V1-P16.1.",
+    "P16.1 explanatory Runtime Flow Atlas child has been relocated to docs/authority/architecture/runtime-flow-atlas/16.1-overview.md without semantic change; its Notion source is retained as historical evidence. The artifact remains derived from AXL-V1-P16 and introduces no independent lifecycle Authority.",
+    "P16 Runtime Flow Atlas artifacts 16.2-16.9 remain in Notion until individually migrated; the next migration item is AXL-V1-P16.2.",
     "Remaining human-readable Current Authority is still in Notion until individual cutover.",
     "Authority relocation does not change lifecycle ownership: active_stage remains P31 AXL-V1-A2 Task Packaging and earliest_untrusted_layer remains implementation.",
     "No standalone A1 P32 Notion page was discovered by the M0 scoped search; the root Authority records its lifecycle fact.",
