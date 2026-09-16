@@ -26,7 +26,7 @@ The latest root Authority records P00-P20 and P30 as accepted/closed. AXL-V1-A0 
 
 | ID | Notion document | Target | Status |
 |---|---|---|---|
-| AXL-V1-P00 | 00 — P00 Problem Discovery — AxLicense v0.1 | `docs/authority/discovery/P00-problem-discovery.md` | pending |
+| AXL-V1-P00 | 00 — P00 Problem Discovery — AxLicense v0.1 | `docs/authority/discovery/P00-problem-discovery.md` | cutover |
 | AXL-V1-P01 | 01 — P01 Product Research — Licensing Pattern Challenge v0.1 | `docs/authority/discovery/P01-product-research.md` | pending |
 | AXL-V1-P02 | 02 — P02 Product Requirements — AxLicense V1 v0.1 | `docs/authority/discovery/P02-product-requirements.md` | pending |
 | AXL-V1-P03 | 03 — P03 Capability Traceability — AxLicense V1 v0.1 | `docs/authority/discovery/P03-capability-traceability.md` | pending |
@@ -83,6 +83,14 @@ Canonical Notion page URLs are recorded in `.aegis/authorities.json` and `.aegis
 
 The canonical baseline contains a Windows C++20 client, A0 signed-credential verification/runtime entitlement logic, A1 Windows DeviceIdentity and protected machine state, unit/integration/reference tooling, Windows CI, a physical TPM workflow, and the two durable P31 packages. A0 was integrated at `c83e38ded5cdb0f385cbdd2fa3a633aa8c7c09c4`. A1 was integrated at `eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5` from exact Gate-reviewed result `a1a37d07d421320d95b7d49ed94ad0ffa7c3cd25`.
 
-## M1 entry condition
+## M1 — P00 cutover
 
-M1 starts with P00. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
+P00 was migrated as a location-only Authority move. The repository copy preserves the source page's problem statement, constraints, scenarios, seed scope, supporting concerns, success criteria, non-goals, policy disposition table, and P00 disposition. No product-semantic change is introduced by the migration.
+
+Current Authority target after merge: `docs/authority/discovery/P00-problem-discovery.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c81f8b4a3ee31b093afd0`.
+
+## M2 entry condition
+
+M2 starts with P01. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
