@@ -100,7 +100,7 @@ AxLicense owns DeviceIdentity and proof-of-possession semantics. The consuming p
 
 ### Downstream routing impact
 
-Because FR-016 introduces a new public cross-product device-trust capability, the earliest untrusted downstream layer reopens to **P10 targeted impact review** before P15. P10–P14 should reconcile only the new assertion/enrollment boundary；existing license Grant/Binding/Credential semantics remain current unless a concrete conflict is found.
+Because FR-016 introduces a new public cross-product device-trust capability, the earliest untrusted downstream layer reopens to **P10 targeted impact review** before P15. P10–P14 should reconcile only the new assertion/enrollment boundary; existing license Grant/Binding/Credential semantics remain current unless a concrete conflict is found.
 
 ## Targeted capability traceability addendum — Legacy Provisional Activation & Human-Assisted Migration — 2026-09-12
 
