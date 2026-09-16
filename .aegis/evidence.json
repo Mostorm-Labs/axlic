@@ -11,6 +11,8 @@
     {"id":"EV-GIT-P02-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/discovery/P02-product-requirements.md"},
     {"id":"EV-NOTION-P03-SOURCE","status":"available","kind":"historical-authority-source","ref":"https://app.notion.com/p/3d74c57a590c81f48247e0af39e23326"},
     {"id":"EV-GIT-P03-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/discovery/P03-capability-traceability.md"},
+    {"id":"EV-NOTION-P10-SOURCE","status":"available","kind":"historical-authority-source","ref":"https://app.notion.com/p/3d74c57a590c8182b7e4d48fdaccfc7e"},
+    {"id":"EV-GIT-P10-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/modeling/P10-product-object-model.md"},
     {"id":"EV-NOTION-A0-P34-B1","status":"available","kind":"gate-review","ref":"https://app.notion.com/p/3db4c57a590c81e3b4c6fdacd785f0b2"},
     {"id":"EV-NOTION-A0-P34-PASS","status":"available","kind":"gate-review","ref":"https://app.notion.com/p/3db4c57a590c8144aaa4feb2f963539f"},
     {"id":"EV-NOTION-A1-P34-PASS","status":"available","kind":"gate-review","ref":"https://app.notion.com/p/3dd4c57a590c81c0af91faaee79aef4a"},
