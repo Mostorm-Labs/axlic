@@ -10,7 +10,7 @@
     {"id":"AXL-V1-P12","scope":"axlicense","kind":"schema","version":"1","status":"Current","ref":"docs/authority/modeling/P12-semantic-schema.md","depends_on":["AXL-V1-P10","AXL-V1-P11"]},
     {"id":"AXL-V1-P13","scope":"axlicense","kind":"operation","version":"1","status":"Current","ref":"docs/authority/modeling/P13-operation-mutation-model.md","depends_on":["AXL-V1-P12"]},
     {"id":"AXL-V1-P14","scope":"axlicense","kind":"architecture","version":"1","status":"Current","ref":"docs/authority/architecture/P14-system-architecture.md","depends_on":["AXL-V1-P13"]},
-    {"id":"AXL-V1-P15","scope":"axlicense","kind":"module","version":"1","status":"Current","ref":"https://app.notion.com/p/3d94c57a590c81359649d808edd4869e","depends_on":["AXL-V1-P14"]},
+    {"id":"AXL-V1-P15","scope":"axlicense","kind":"module","version":"1","status":"Current","ref":"docs/authority/architecture/P15-module-design.md","depends_on":["AXL-V1-P14"]},
     {"id":"AXL-V1-P16","scope":"axlicense","kind":"flow","version":"1","status":"Current","ref":"https://app.notion.com/p/3d94c57a590c815dbed1fe9093e7dd08","depends_on":["AXL-V1-P15"]},
     {"id":"AXL-V1-P17","scope":"axlicense","kind":"platform","version":"1","status":"Current","ref":"https://app.notion.com/p/3d94c57a590c8149b8e7e0838a5e46b9","depends_on":["AXL-V1-P16"]},
     {"id":"AXL-V1-P18","scope":"axlicense","kind":"engineering","version":"1","status":"Current","ref":"https://app.notion.com/p/3d94c57a590c8182a28aed9fa1a54a46","depends_on":["AXL-V1-P17"]},
