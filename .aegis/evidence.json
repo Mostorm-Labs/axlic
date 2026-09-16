@@ -17,6 +17,8 @@
     {"id":"EV-GIT-P11-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/modeling/P11-interaction-behavior.md"},
     {"id":"EV-NOTION-P12-SOURCE","status":"available","kind":"historical-authority-source","ref":"https://app.notion.com/p/3d74c57a590c813c93b8cf63f128cf85"},
     {"id":"EV-GIT-P12-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/modeling/P12-semantic-schema.md"},
+    {"id":"EV-NOTION-P13-SOURCE","status":"available","kind":"historical-authority-source","ref":"https://app.notion.com/p/3d94c57a590c81108345fac48ed6d2b8"},
+    {"id":"EV-GIT-P13-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/modeling/P13-operation-mutation-model.md"},
     {"id":"EV-NOTION-A0-P34-B1","status":"available","kind":"gate-review","ref":"https://app.notion.com/p/3db4c57a590c81e3b4c6fdacd785f0b2"},
     {"id":"EV-NOTION-A0-P34-PASS","status":"available","kind":"gate-review","ref":"https://app.notion.com/p/3db4c57a590c8144aaa4feb2f963539f"},
     {"id":"EV-NOTION-A1-P34-PASS","status":"available","kind":"gate-review","ref":"https://app.notion.com/p/3dd4c57a590c81c0af91faaee79aef4a"},
