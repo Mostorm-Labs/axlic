@@ -32,9 +32,9 @@ The latest root Authority records P00-P20 and P30 as accepted/closed. AXL-V1-A0 
 | AXL-V1-P03 | 03 — P03 Capability Traceability — AxLicense V1 v0.1 | `docs/authority/discovery/P03-capability-traceability.md` | cutover |
 | AXL-V1-P10 | 10 — P10 Product Object Model — AxLicense V1 v0.1 | `docs/authority/modeling/P10-product-object-model.md` | cutover |
 | AXL-V1-P11 | 11 — P11 Interaction & Behavior — AxLicense V1 v0.1 | `docs/authority/modeling/P11-interaction-behavior.md` | cutover |
-| AXL-V1-P12 | 12 — P12 Semantic Schema — AxLicense V1 v0.1 | `docs/authority/modeling/P12-semantic-schema.md` | pending |
-| AXL-V1-P13 | 13 — P13 Operation & Mutation Model — AxLicense V1 v0.1 | `docs/authority/modeling/P13-operation-mutation-model.md` | pending |
-| AXL-V1-P14 | 14 — P14 System Architecture — AxLicense V1 v0.1 | `docs/authority/architecture/P14-system-architecture.md` | pending |
+| AXL-V1-P12 | 12 — P12 Semantic Schema — AxLicense V1 v0.1 | `docs/authority/modeling/P12-semantic-schema.md` | cutover |
+| AXL-V1-P13 | 13 — P13 Operation & Mutation Model — AxLicense V1 v0.1 | `docs/authority/modeling/P13-operation-mutation-model.md` | cutover |
+| AXL-V1-P14 | 14 — P14 System Architecture — AxLicense V1 v0.1 | `docs/authority/architecture/P14-system-architecture.md` | cutover |
 | AXL-V1-P15 | 15 — P15 Module Design — AxLicense V1 v0.1 | `docs/authority/architecture/P15-module-design.md` | pending |
 | AXL-V1-P16 | 16 — P16 Runtime Data Flow — AxLicense V1 v0.1 | `docs/authority/architecture/P16-runtime-data-flow.md` | pending |
 | AXL-V1-P16.1 | 16.1 — Runtime Flow Atlas — 总览、状态面与读图约定 | `docs/authority/architecture/runtime-flow-atlas/16.1-overview.md` | pending |
@@ -131,6 +131,30 @@ Current Authority target after merge: `docs/authority/modeling/P11-interaction-b
 
 Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c818ca6d7e7d5811831fb`.
 
-## M7 entry condition
+## M7 — P12 cutover
 
-M7 starts with P12. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
+P12 was migrated as a location-only Authority move. The repository copy preserves the complete semantic-schema authority, including canonical truth boundaries, identity/version/compatibility rules, normative reconciliation amendments, Device Assertion schema reconciliation, superseded FR-018 historical schema, and current FR-019 dynamic-entitlement/revision/credential-refresh authority. No schema meaning, supersession decision, validation invariant, or downstream routing semantic is changed by the migration.
+
+Current Authority target after merge: `docs/authority/modeling/P12-semantic-schema.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c813c93b8cf63f128cf85`.
+
+## M8 — P13 cutover
+
+P13 was migrated as a location-only Authority move. The repository copy preserves the operation/mutation contract, atomicity/idempotency/replay/error semantics, Device Assertion operations, superseded FR-018 workflow/migration history, current FR-019 catalog/grant/credential reconciliation, and the ordinary first-run `RegisterDeviceIdentity` targeted repair. No operation contract, supersession decision, commit boundary, or lifecycle routing semantic is changed by the migration.
+
+Current Authority target after merge: `docs/authority/modeling/P13-operation-mutation-model.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d94c57a590c81108345fac48ed6d2b8`.
+
+## M9 — P14 cutover
+
+P14 was migrated as a location-only Authority move. The repository copy preserves the base system architecture, modular-monolith/canonical-ACID/signing boundaries, CLI-only deployment reconciliation, local single-writer constraints, Diagnostics & Safe Logging authority, Device Assertion architecture, the superseded FR-018 migration architecture and ownership correction, and the final FR-019 unified enrollment/dynamic-entitlement/credential-observation architecture. No ownership assignment, trust/failure boundary, supersession decision, deployment invariant, or P15 handoff semantic is changed by the migration.
+
+Current Authority target after merge: `docs/authority/architecture/P14-system-architecture.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d94c57a590c81909351e96d9c3469e0`.
+
+## M10 entry condition
+
+M10 starts with P15. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, then change the ledger status to `cutover`. Authority migration remains independent of the implementation lifecycle; the active development stage remains whatever `.aegis/state.json` derives from the authored manifests and repository evidence.
