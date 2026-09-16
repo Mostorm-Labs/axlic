@@ -1,0 +1,28 @@
+{
+  "schema_version": "0.6",
+  "projection_basis": {
+    "repository_revision": "eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5",
+    "authority_source": "https://app.notion.com/p/3d74c57a590c817386c8e9a7a896882c",
+    "manifests": ["project.json","authorities.json","gates.json","evidence.json","integrations.json"]
+  },
+  "active_stage": "P31 AXL-V1-A2 Task Packaging",
+  "earliest_untrusted_layer": "implementation",
+  "recommended_stage": "P31",
+  "recommended_owner": "aegis-implementation",
+  "authority_migration": {
+    "status": "bootstrap_complete_migration_pending",
+    "current_source_policy": "per-artifact-cutover",
+    "next_migration_item": "AXL-V1-P00"
+  },
+  "blocking_gates": [],
+  "integration_conformance": [
+    {"integration_id":"INT-AXL-V1-A0","conformance":"conforming"},
+    {"integration_id":"INT-AXL-V1-A1","conformance":"conforming"}
+  ],
+  "nonconforming_integrations": [],
+  "findings": [
+    "Most human-readable Current Authority remains in Notion until individual cutover.",
+    "No standalone A1 P32 Notion page was discovered by the M0 scoped search; the root Authority records its lifecycle fact.",
+    "No deterministic tools.aegis_state implementation was found in the inspected repository tree, so this bootstrap projection must be revalidated when deterministic state tooling is introduced."
+  ]
+}

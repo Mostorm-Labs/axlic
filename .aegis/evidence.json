@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.6",
+  "evidence": [
+    {"id":"EV-NOTION-ROOT","status":"available","kind":"authority-source","ref":"https://app.notion.com/p/3d74c57a590c817386c8e9a7a896882c"},
+    {"id":"EV-NOTION-GOVERNANCE","status":"available","kind":"authority-source","ref":"https://app.notion.com/p/3d74c57a590c8159b134c1a6e3d94b39"},
+    {"id":"EV-NOTION-A0-P34-B1","status":"available","kind":"gate-review","ref":"https://app.notion.com/p/3db4c57a590c81e3b4c6fdacd785f0b2"},
+    {"id":"EV-NOTION-A0-P34-PASS","status":"available","kind":"gate-review","ref":"https://app.notion.com/p/3db4c57a590c8144aaa4feb2f963539f"},
+    {"id":"EV-NOTION-A1-P34-PASS","status":"available","kind":"gate-review","ref":"https://app.notion.com/p/3dd4c57a590c81c0af91faaee79aef4a"},
+    {"id":"EV-NOTION-A0-INTEGRATION","status":"available","kind":"integration-closure","ref":"https://app.notion.com/p/3db4c57a590c8166b8b3c247a4fd1423"},
+    {"id":"EV-NOTION-A1-INTEGRATION","status":"available","kind":"integration-closure","ref":"https://app.notion.com/p/3dd4c57a590c81bdb124df0368190f6a"},
+    {"id":"EV-GIT-A0-PACKAGE","status":"available","kind":"repository-artifact","ref":".aegis/packages/AXL-V1-A0-P31.md"},
+    {"id":"EV-GIT-A1-PACKAGE","status":"available","kind":"repository-artifact","ref":".aegis/packages/AXL-V1-A1-P31.md"},
+    {"id":"EV-GIT-A0-RESULT","status":"available","kind":"repository-revision","ref":"13d16ebb34913dafbddc83222cf29187e92c8053"},
+    {"id":"EV-GIT-A0-INTEGRATION","status":"available","kind":"repository-revision","ref":"c83e38ded5cdb0f385cbdd2fa3a633aa8c7c09c4"},
+    {"id":"EV-GIT-A1-RESULT","status":"available","kind":"repository-revision","ref":"a1a37d07d421320d95b7d49ed94ad0ffa7c3cd25"},
+    {"id":"EV-GIT-A1-INTEGRATION","status":"available","kind":"repository-revision","ref":"eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5"},
+    {"id":"EV-A1-PHYSICAL-TPM","status":"available","kind":"external-evidence-digest","ref":"sha256:87347e9feb6715ce9515840ecdddc85280f55baf126eb2c4e79ce1da22914cd7"},
+    {"id":"EV-M0-REPOSITORY-TREE","status":"available","kind":"repository-inspection","ref":"main@eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5"}
+  ]
+}

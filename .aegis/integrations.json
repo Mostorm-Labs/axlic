@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.6",
+  "integrations": [
+    {
+      "id":"INT-AXL-V1-A0",
+      "kind":"merge",
+      "ref":"13d16ebb34913dafbddc83222cf29187e92c8053",
+      "target_ref":"main",
+      "status":"integrated",
+      "integrated_revision":"c83e38ded5cdb0f385cbdd2fa3a633aa8c7c09c4",
+      "gate_decision_binding":{"type":"bound","gate_decision_id":"D-095"},
+      "evidence_ids":["EV-GIT-A0-RESULT","EV-GIT-A0-INTEGRATION","EV-NOTION-A0-INTEGRATION"]
+    },
+    {
+      "id":"INT-AXL-V1-A1",
+      "kind":"merge",
+      "ref":"a1a37d07d421320d95b7d49ed94ad0ffa7c3cd25",
+      "target_ref":"main",
+      "status":"integrated",
+      "integrated_revision":"eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5",
+      "gate_decision_binding":{"type":"bound","gate_decision_id":"D-102"},
+      "evidence_ids":["EV-GIT-A1-RESULT","EV-GIT-A1-INTEGRATION","EV-NOTION-A1-INTEGRATION"]
+    }
+  ]
+}

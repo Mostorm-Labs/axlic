@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.6",
+  "project": {
+    "id": "axlicense",
+    "name": "AxLicense",
+    "repository": "Mostorm-Labs/axlic",
+    "default_branch": "main",
+    "process_profile": "Full",
+    "authority_migration": {
+      "source": "notion",
+      "source_root": "https://app.notion.com/p/3d74c57a590c817386c8e9a7a896882c",
+      "target_root": "docs/authority",
+      "mode": "per-artifact-cutover"
+    },
+    "bootstrap_repository_revision": "eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5"
+  }
+}
