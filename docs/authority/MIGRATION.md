@@ -28,7 +28,7 @@ The latest root Authority records P00-P20 and P30 as accepted/closed. AXL-V1-A0 
 |---|---|---|---|
 | AXL-V1-P00 | 00 — P00 Problem Discovery — AxLicense v0.1 | `docs/authority/discovery/P00-problem-discovery.md` | cutover |
 | AXL-V1-P01 | 01 — P01 Product Research — Licensing Pattern Challenge v0.1 | `docs/authority/discovery/P01-product-research.md` | cutover |
-| AXL-V1-P02 | 02 — P02 Product Requirements — AxLicense V1 v0.1 | `docs/authority/discovery/P02-product-requirements.md` | pending |
+| AXL-V1-P02 | 02 — P02 Product Requirements — AxLicense V1 v0.1 | `docs/authority/discovery/P02-product-requirements.md` | cutover |
 | AXL-V1-P03 | 03 — P03 Capability Traceability — AxLicense V1 v0.1 | `docs/authority/discovery/P03-capability-traceability.md` | pending |
 | AXL-V1-P10 | 10 — P10 Product Object Model — AxLicense V1 v0.1 | `docs/authority/modeling/P10-product-object-model.md` | pending |
 | AXL-V1-P11 | 11 — P11 Interaction & Behavior — AxLicense V1 v0.1 | `docs/authority/modeling/P11-interaction-behavior.md` | pending |
@@ -99,6 +99,14 @@ Current Authority target after merge: `docs/authority/discovery/P01-product-rese
 
 Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c812a9442c5571a5e776f`.
 
-## M3 entry condition
+## M3 — P02 cutover
 
-M3 starts with P02. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
+P02 was migrated as a location-only Authority move. The repository copy preserves the accepted requirement baseline, FR-001 through FR-019, all NFRs and acceptance criteria, the Windows-first Device Identity Assurance Policy, requirement-freeze disposition, the 2026-09-12 targeted reconciliations, and the explicit internal supersession of NearHub V1 legacy-specific mandatory journeys by FR-019. No requirement, supersession decision, or product semantic is changed by the migration.
+
+Current Authority target after merge: `docs/authority/discovery/P02-product-requirements.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c81c79a58e2c7098c8648`.
+
+## M4 entry condition
+
+M4 starts with P03. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
