@@ -29,7 +29,7 @@ The latest root Authority records P00-P20 and P30 as accepted/closed. AXL-V1-A0 
 | AXL-V1-P00 | 00 — P00 Problem Discovery — AxLicense v0.1 | `docs/authority/discovery/P00-problem-discovery.md` | cutover |
 | AXL-V1-P01 | 01 — P01 Product Research — Licensing Pattern Challenge v0.1 | `docs/authority/discovery/P01-product-research.md` | cutover |
 | AXL-V1-P02 | 02 — P02 Product Requirements — AxLicense V1 v0.1 | `docs/authority/discovery/P02-product-requirements.md` | cutover |
-| AXL-V1-P03 | 03 — P03 Capability Traceability — AxLicense V1 v0.1 | `docs/authority/discovery/P03-capability-traceability.md` | pending |
+| AXL-V1-P03 | 03 — P03 Capability Traceability — AxLicense V1 v0.1 | `docs/authority/discovery/P03-capability-traceability.md` | cutover |
 | AXL-V1-P10 | 10 — P10 Product Object Model — AxLicense V1 v0.1 | `docs/authority/modeling/P10-product-object-model.md` | pending |
 | AXL-V1-P11 | 11 — P11 Interaction & Behavior — AxLicense V1 v0.1 | `docs/authority/modeling/P11-interaction-behavior.md` | pending |
 | AXL-V1-P12 | 12 — P12 Semantic Schema — AxLicense V1 v0.1 | `docs/authority/modeling/P12-semantic-schema.md` | pending |
@@ -107,6 +107,14 @@ Current Authority target after merge: `docs/authority/discovery/P02-product-requ
 
 Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c81c79a58e2c7098c8648`.
 
-## M4 entry condition
+## M4 — P03 cutover
 
-M4 starts with P03. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
+P03 was migrated as a location-only Authority move. The repository copy preserves the initial requirement-to-capability matrix, consumer mapping, accepted product-policy trace, downstream traceability policy, the FR-016/FR-017 assertion and enrollment-recovery addendum, the FR-018 legacy-provisional traceability addendum, the FR-019 unified first-run reconciliation, their intermediate downstream routing dispositions, and the final FR-019 supersession/routing result. No capability mapping, supersession decision, or traceability semantic is changed by the migration.
+
+Current Authority target after merge: `docs/authority/discovery/P03-capability-traceability.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c81f48247e0af39e23326`.
+
+## M5 entry condition
+
+M5 starts with P10. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
