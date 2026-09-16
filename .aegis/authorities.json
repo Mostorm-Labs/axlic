@@ -2,7 +2,7 @@
   "schema_version": "0.6",
   "authorities": [
     {"id":"AXL-V1-P00","scope":"axlicense","kind":"problem","version":"1","status":"Current","ref":"docs/authority/discovery/P00-problem-discovery.md","depends_on":[]},
-    {"id":"AXL-V1-P01","scope":"axlicense","kind":"research","version":"1","status":"Current","ref":"https://app.notion.com/p/3d74c57a590c812a9442c5571a5e776f","depends_on":["AXL-V1-P00"]},
+    {"id":"AXL-V1-P01","scope":"axlicense","kind":"research","version":"1","status":"Current","ref":"docs/authority/discovery/P01-product-research.md","depends_on":["AXL-V1-P00"]},
     {"id":"AXL-V1-P02","scope":"axlicense","kind":"requirement","version":"1","status":"Current","ref":"https://app.notion.com/p/3d74c57a590c81c79a58e2c7098c8648","depends_on":["AXL-V1-P00","AXL-V1-P01"]},
     {"id":"AXL-V1-P03","scope":"axlicense","kind":"capability-traceability","version":"1","status":"Current","ref":"https://app.notion.com/p/3d74c57a590c81f48247e0af39e23326","depends_on":["AXL-V1-P02"]},
     {"id":"AXL-V1-P10","scope":"axlicense","kind":"object","version":"1","status":"Current","ref":"https://app.notion.com/p/3d74c57a590c8182b7e4d48fdaccfc7e","depends_on":["AXL-V1-P02","AXL-V1-P03"]},

@@ -27,7 +27,7 @@ The latest root Authority records P00-P20 and P30 as accepted/closed. AXL-V1-A0 
 | ID | Notion document | Target | Status |
 |---|---|---|---|
 | AXL-V1-P00 | 00 — P00 Problem Discovery — AxLicense v0.1 | `docs/authority/discovery/P00-problem-discovery.md` | cutover |
-| AXL-V1-P01 | 01 — P01 Product Research — Licensing Pattern Challenge v0.1 | `docs/authority/discovery/P01-product-research.md` | pending |
+| AXL-V1-P01 | 01 — P01 Product Research — Licensing Pattern Challenge v0.1 | `docs/authority/discovery/P01-product-research.md` | cutover |
 | AXL-V1-P02 | 02 — P02 Product Requirements — AxLicense V1 v0.1 | `docs/authority/discovery/P02-product-requirements.md` | pending |
 | AXL-V1-P03 | 03 — P03 Capability Traceability — AxLicense V1 v0.1 | `docs/authority/discovery/P03-capability-traceability.md` | pending |
 | AXL-V1-P10 | 10 — P10 Product Object Model — AxLicense V1 v0.1 | `docs/authority/modeling/P10-product-object-model.md` | pending |
@@ -91,6 +91,14 @@ Current Authority target after merge: `docs/authority/discovery/P00-problem-disc
 
 Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c81f8b4a3ee31b093afd0`.
 
-## M2 entry condition
+## M2 — P01 cutover
 
-M2 starts with P01. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
+P01 was migrated as a location-only Authority move. The repository copy preserves the source page's four reviewed alternatives, five research findings, build-vs-buy challenge, P01 conclusion, validated licensing pattern, excluded commercial-platform scope, and research-status follow-up evidence topics. No product-semantic or research-conclusion change is introduced by the migration.
+
+Current Authority target after merge: `docs/authority/discovery/P01-product-research.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c812a9442c5571a5e776f`.
+
+## M3 entry condition
+
+M3 starts with P02. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
