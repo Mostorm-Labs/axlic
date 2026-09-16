@@ -39,7 +39,7 @@ The latest root Authority records P00-P20 and P30 as accepted/closed. AXL-V1-A0 
 | AXL-V1-P16 | 16 — P16 Runtime Data Flow — AxLicense V1 v0.1 | `docs/authority/architecture/P16-runtime-data-flow.md` | cutover |
 | AXL-V1-P16.1 | 16.1 — Runtime Flow Atlas — 总览、状态面与读图约定 | `docs/authority/architecture/runtime-flow-atlas/16.1-overview.md` | cutover |
 | AXL-V1-P16.2 | 16.2 — Runtime Flow Atlas — 本地运行、DeviceIdentity 与设备注册 | `docs/authority/architecture/runtime-flow-atlas/16.2-local-identity-registration.md` | cutover |
-| AXL-V1-P16.3 | 16.3 — Runtime Flow Atlas — LicenseGrant、在线激活与离线激活 | `docs/authority/architecture/runtime-flow-atlas/16.3-activation.md` | pending |
+| AXL-V1-P16.3 | 16.3 — Runtime Flow Atlas — LicenseGrant、在线激活与离线激活 | `docs/authority/architecture/runtime-flow-atlas/16.3-activation.md` | cutover |
 | AXL-V1-P16.4 | 16.4 — Runtime Flow Atlas — 工厂 Provisioning 与 Legacy Migration | `docs/authority/architecture/runtime-flow-atlas/16.4-factory-legacy.md` | pending |
 | AXL-V1-P16.5 | 16.5 — Runtime Flow Atlas — Entitlement 变更、Credential 演进与 Admin Lifecycle | `docs/authority/architecture/runtime-flow-atlas/16.5-entitlement-credential-admin.md` | pending |
 | AXL-V1-P16.6 | 16.6 — Runtime Flow Atlas — Recovery、Identity Continuity 与 RMA/Rehost | `docs/authority/architecture/runtime-flow-atlas/16.6-recovery-rehost.md` | pending |
@@ -193,6 +193,16 @@ Historical source retained as evidence: `https://app.notion.com/p/3d94c57a590c81
 
 P16.3–P16.9 remain in Notion until their individual cutovers.
 
-## M14 entry condition
+## M14 — P16.3 Runtime Flow Atlas cutover
 
-M14 starts with P16.3 Runtime Flow Atlas — LicenseGrant、在线激活与离线激活. Migration remains per-artifact: fetch the complete Notion source, reproduce it faithfully in Markdown, verify diagrams/explanations and source-derived invariants, update evidence/state/ledger, then mark that Atlas artifact `cutover`. P16.4–P16.9 remain pending until their individual cutovers. Authority migration remains independent of the implementation lifecycle; `active_stage` remains derived from `.aegis` authored manifests and repository evidence, currently P31 AXL-V1-A2 Task Packaging.
+P16.3 was migrated as a location-only move of the P16 explanatory child artifact. The repository copy faithfully preserves `LIC-01`, `ACT-01`, and `ACT-02`, including all three Mermaid flows, Chinese explanations, design meaning, and source-derived risk/control invariants. In particular, LicenseGrant issuance remains separate from DeviceBinding and device credential state; correlation preserves idempotent Grant issuance; stable entitlement IDs rather than SKU names drive authorization; online activation commits Binding, Credential, Event, and operation result as one recoverable canonical outcome; a pre-commit signature is not authority; response loss recovers the same committed result; an already-bound Grant requires `REHOST_REQUIRED`; offline activation requests are transport evidence rather than authorization; a server commit remains authoritative even when the response has not yet returned to the device; and repeated import of the same credential remains an idempotent no-op/success. No product semantic, temporal ordering, commit boundary, retry/recovery rule, or authorization authority boundary is changed by the migration. The artifact remains derived from `AXL-V1-P16`, so no independent `.aegis/authorities.json` Current Authority entry is created.
+
+Current target after merge: `docs/authority/architecture/runtime-flow-atlas/16.3-activation.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d94c57a590c81299efed11b69a0a34f`.
+
+P16.4–P16.9 remain in Notion until their individual cutovers.
+
+## M15 entry condition
+
+M15 starts with P16.4 Runtime Flow Atlas — 工厂 Provisioning 与 Legacy Migration. Migration remains per-artifact: fetch the complete Notion source, reproduce it faithfully in Markdown, verify diagrams/explanations and source-derived invariants, update evidence/state/ledger, then mark that Atlas artifact `cutover`. P16.5–P16.9 remain pending until their individual cutovers. Authority migration remains independent of the implementation lifecycle; `active_stage` remains derived from `.aegis` authored manifests and repository evidence, currently P31 AXL-V1-A2 Task Packaging.
