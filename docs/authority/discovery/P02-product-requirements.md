@@ -237,7 +237,7 @@ The required ordering is:
 
 AxLicense assertion alone must never authorize ownership transfer, disclose the bound account, reset a password, or silently rebind a device to a different account/organization.
 
-**Acceptance:** factory/inventory/first-boot devices may be registered before any customer account exists；scanning a QR code without successful account/organization verification does not reveal full account identity or mutate ownership；forgotten-credential recovery can locate the existing product association only after human authorization；rebinding to a different account/organization is treated as a separate privileged ownership-transfer flow, not ordinary password recovery.
+**Acceptance:** factory/inventory/first-boot devices may be registered before any customer account exists; scanning a QR code without successful account/organization verification does not reveal full account identity or mutate ownership; forgotten-credential recovery can locate the existing product association only after human authorization; rebinding to a different account/organization is treated as a separate privileged ownership-transfer flow, not ordinary password recovery.
 
 ### Enrollment timing policy — Accepted
 
