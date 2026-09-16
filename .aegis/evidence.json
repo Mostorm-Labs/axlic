@@ -29,6 +29,8 @@
     {"id":"EV-GIT-P16-1-ATLAS","status":"available","kind":"repository-authority","ref":"docs/authority/architecture/runtime-flow-atlas/16.1-overview.md"},
     {"id":"EV-NOTION-P16-2-SOURCE","status":"available","kind":"historical-authority-source","ref":"https://app.notion.com/p/3d94c57a590c8119b738f37371cb6954"},
     {"id":"EV-GIT-P16-2-ATLAS","status":"available","kind":"repository-authority","ref":"docs/authority/architecture/runtime-flow-atlas/16.2-local-identity-registration.md"},
+    {"id":"EV-NOTION-P16-3-SOURCE","status":"available","kind":"historical-authority-source","ref":"https://app.notion.com/p/3d94c57a590c81299efed11b69a0a34f"},
+    {"id":"EV-GIT-P16-3-ATLAS","status":"available","kind":"repository-authority","ref":"docs/authority/architecture/runtime-flow-atlas/16.3-activation.md"},
     {"id":"EV-NOTION-A0-P34-B1","status":"available","kind":"gate-review","ref":"https://app.notion.com/p/3db4c57a590c81e3b4c6fdacd785f0b2"},
     {"id":"EV-NOTION-A0-P34-PASS","status":"available","kind":"gate-review","ref":"https://app.notion.com/p/3db4c57a590c8144aaa4feb2f963539f"},
     {"id":"EV-NOTION-A1-P34-PASS","status":"available","kind":"gate-review","ref":"https://app.notion.com/p/3dd4c57a590c81c0af91faaee79aef4a"},
