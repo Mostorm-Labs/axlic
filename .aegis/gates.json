@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.6",
+  "gate_contracts": [
+    {"id":"AXL-V1-A0-P34","scope":"axlicense/A0","authority_ids":["AXL-V1-P20","AXL-V1-P30","AXL-V1-A0-P31"]},
+    {"id":"AXL-V1-A1-P34","scope":"axlicense/A1","authority_ids":["AXL-V1-P20","AXL-V1-P30","AXL-V1-A1-P31"]}
+  ],
+  "gate_decisions": [
+    {"id":"D-093","gate_id":"AXL-V1-A0-P34","verdict":"BLOCKED_IMPLEMENTATION","status":"historical","evidence_ids":["EV-NOTION-A0-P34-B1"]},
+    {"id":"D-095","gate_id":"AXL-V1-A0-P34","verdict":"PASS_WITH_FINDINGS","status":"current","evidence_ids":["EV-NOTION-A0-P34-PASS","EV-GIT-A0-RESULT"]},
+    {"id":"D-102","gate_id":"AXL-V1-A1-P34","verdict":"PASS_WITH_FINDINGS","status":"current","evidence_ids":["EV-NOTION-A1-P34-PASS","EV-GIT-A1-RESULT","EV-A1-PHYSICAL-TPM"]}
+  ],
+  "current_gate_decisions": [
+    {"gate_id":"AXL-V1-A0-P34","decision_id":"D-095"},
+    {"gate_id":"AXL-V1-A1-P34","decision_id":"D-102"}
+  ]
+}
