@@ -35,7 +35,7 @@ The latest root Authority records P00-P20 and P30 as accepted/closed. AXL-V1-A0 
 | AXL-V1-P12 | 12 — P12 Semantic Schema — AxLicense V1 v0.1 | `docs/authority/modeling/P12-semantic-schema.md` | cutover |
 | AXL-V1-P13 | 13 — P13 Operation & Mutation Model — AxLicense V1 v0.1 | `docs/authority/modeling/P13-operation-mutation-model.md` | cutover |
 | AXL-V1-P14 | 14 — P14 System Architecture — AxLicense V1 v0.1 | `docs/authority/architecture/P14-system-architecture.md` | cutover |
-| AXL-V1-P15 | 15 — P15 Module Design — AxLicense V1 v0.1 | `docs/authority/architecture/P15-module-design.md` | pending |
+| AXL-V1-P15 | 15 — P15 Module Design — AxLicense V1 v0.1 | `docs/authority/architecture/P15-module-design.md` | cutover |
 | AXL-V1-P16 | 16 — P16 Runtime Data Flow — AxLicense V1 v0.1 | `docs/authority/architecture/P16-runtime-data-flow.md` | pending |
 | AXL-V1-P16.1 | 16.1 — Runtime Flow Atlas — 总览、状态面与读图约定 | `docs/authority/architecture/runtime-flow-atlas/16.1-overview.md` | pending |
 | AXL-V1-P16.2 | 16.2 — Runtime Flow Atlas — 本地运行、DeviceIdentity 与设备注册 | `docs/authority/architecture/runtime-flow-atlas/16.2-local-identity-registration.md` | pending |
@@ -155,6 +155,14 @@ Current Authority target after merge: `docs/authority/architecture/P14-system-ar
 
 Historical source retained as evidence: `https://app.notion.com/p/3d94c57a590c81909351e96d9c3469e0`.
 
-## M10 entry condition
+## M10 — P15 cutover
 
-M10 starts with P15. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, then change the ledger status to `cutover`. Authority migration remains independent of the implementation lifecycle; the active development stage remains whatever `.aegis/state.json` derives from the authored manifests and repository evidence.
+P15 was migrated as a location-only Authority move. The repository copy preserves the base module map and stable ports, CLI-only public boundary, local single-writer/diagnostics/Device Assertion module invariants, the superseded FR-018 migration workflow module reconciliation, and the final FR-019 Current Authority with `DeviceRegistrationClient`, `CredentialSync`, Product Backend enrollment/commercial modules, Product/Entitlement Catalog Registry, Grant Authority, read-only `CredentialResolver`, mutation-only `CredentialIssuance`, and compatibility-only legacy migration modules. No module ownership, port contract, dependency direction, command-family classification, supersession decision, or P16 handoff semantic is changed by the migration.
+
+Current Authority target after merge: `docs/authority/architecture/P15-module-design.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d94c57a590c81359649d808edd4869e`.
+
+## M11 entry condition
+
+M11 starts with P16. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, then change the ledger status to `cutover`. P16 also has the 16.1–16.9 Runtime Flow Atlas inventory, which remains pending until each recorded source is migrated according to the migration ledger. Authority migration remains independent of the implementation lifecycle; the active development stage remains whatever `.aegis/state.json` derives from the authored manifests and repository evidence.
