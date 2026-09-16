@@ -32,7 +32,7 @@ The latest root Authority records P00-P20 and P30 as accepted/closed. AXL-V1-A0 
 | AXL-V1-P03 | 03 — P03 Capability Traceability — AxLicense V1 v0.1 | `docs/authority/discovery/P03-capability-traceability.md` | cutover |
 | AXL-V1-P10 | 10 — P10 Product Object Model — AxLicense V1 v0.1 | `docs/authority/modeling/P10-product-object-model.md` | cutover |
 | AXL-V1-P11 | 11 — P11 Interaction & Behavior — AxLicense V1 v0.1 | `docs/authority/modeling/P11-interaction-behavior.md` | cutover |
-| AXL-V1-P12 | 12 — P12 Semantic Schema — AxLicense V1 v0.1 | `docs/authority/modeling/P12-semantic-schema.md` | pending |
+| AXL-V1-P12 | 12 — P12 Semantic Schema — AxLicense V1 v0.1 | `docs/authority/modeling/P12-semantic-schema.md` | cutover |
 | AXL-V1-P13 | 13 — P13 Operation & Mutation Model — AxLicense V1 v0.1 | `docs/authority/modeling/P13-operation-mutation-model.md` | pending |
 | AXL-V1-P14 | 14 — P14 System Architecture — AxLicense V1 v0.1 | `docs/authority/architecture/P14-system-architecture.md` | pending |
 | AXL-V1-P15 | 15 — P15 Module Design — AxLicense V1 v0.1 | `docs/authority/architecture/P15-module-design.md` | pending |
@@ -131,6 +131,14 @@ Current Authority target after merge: `docs/authority/modeling/P11-interaction-b
 
 Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c818ca6d7e7d5811831fb`.
 
-## M7 entry condition
+## M7 — P12 cutover
 
-M7 starts with P12. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
+P12 was migrated as a location-only Authority move. The repository copy preserves the canonical truth boundary, scalar/value semantics, Product/Entitlement registry schema, LicenseGrant/Device/DeviceBinding/SignedLicenseCredential semantics, validation and compatibility rules, the 2026-09-12 normative provisioning/recovery amendment, Device Assertion Challenge/Assertion targeted reconciliation, the full historical superseded FR-018 schema, and the current FR-019 dynamic-registry/revision-separation/credential-refresh reconciliation. No field meaning, revision domain, compatibility rule, supersession decision, anti-rollback rule, or downstream P13 handoff semantic is changed by the migration.
+
+Current Authority target after merge: `docs/authority/modeling/P12-semantic-schema.md`.
+
+Historical source retained as evidence: `https://app.notion.com/p/3d74c57a590c813c93b8cf63f128cf85`.
+
+## M8 entry condition
+
+M8 starts with P13. Migration of a document means: fetch complete Notion source, reproduce it faithfully in Markdown, verify structure/decisions, update Authority/evidence manifests, recompute state, review the diff, merge, then mark the Notion page historical/redirect and change the ledger status to `cutover`.
