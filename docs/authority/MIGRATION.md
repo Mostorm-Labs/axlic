@@ -42,10 +42,10 @@ The latest root Authority records P00-P20 and P30 as accepted/closed. AXL-V1-A0 
 | AXL-V1-P16.3 | 16.3 — Runtime Flow Atlas — LicenseGrant、在线激活与离线激活 | `docs/authority/architecture/runtime-flow-atlas/16.3-activation.md` | cutover |
 | AXL-V1-P16.4 | 16.4 — Runtime Flow Atlas — 工厂 Provisioning 与 Legacy Migration | `docs/authority/architecture/runtime-flow-atlas/16.4-factory-legacy.md` | cutover |
 | AXL-V1-P16.5 | 16.5 — Runtime Flow Atlas — Entitlement 变更、Credential 演进与 Admin Lifecycle | `docs/authority/architecture/runtime-flow-atlas/16.5-entitlement-credential-admin.md` | cutover |
-| AXL-V1-P16.6 | 16.6 — Runtime Flow Atlas — Recovery、Identity Continuity 与 RMA/Rehost | `docs/authority/architecture/runtime-flow-atlas/16.6-recovery-rehost.md` | pending |
-| AXL-V1-P16.7 | 16.7 — Runtime Flow Atlas — Product Claim、二维码找回、Ownership 与 Support Verification | `docs/authority/architecture/runtime-flow-atlas/16.7-product-claim-ownership.md` | pending |
-| AXL-V1-P16.8 | 16.8 — Runtime Flow Atlas — Diagnostics、本地并发、Crash、State Corruption 与 Self-Upgrade | `docs/authority/architecture/runtime-flow-atlas/16.8-diagnostics-concurrency.md` | pending |
-| AXL-V1-P16.9 | 16.9 — Runtime Flow Atlas — Server Timeout、Signing/DB Failure、Outage、DR 与 Assertion Replay | `docs/authority/architecture/runtime-flow-atlas/16.9-server-failure-dr.md` | pending |
+| AXL-V1-P16.6 | 16.6 — Runtime Flow Atlas — Recovery、Identity Continuity 与 RMA/Rehost | `docs/authority/architecture/runtime-flow-atlas/16.6-recovery-rehost.md` | cutover |
+| AXL-V1-P16.7 | 16.7 — Runtime Flow Atlas — Product Claim、二维码找回、Ownership 与 Support Verification | `docs/authority/architecture/runtime-flow-atlas/16.7-product-claim-ownership.md` | cutover |
+| AXL-V1-P16.8 | 16.8 — Runtime Flow Atlas — Diagnostics、本地并发、Crash、State Corruption 与 Self-Upgrade | `docs/authority/architecture/runtime-flow-atlas/16.8-diagnostics-concurrency.md` | cutover |
+| AXL-V1-P16.9 | 16.9 — Runtime Flow Atlas — Server Timeout、Signing/DB Failure、Outage、DR 与 Assertion Replay | `docs/authority/architecture/runtime-flow-atlas/16.9-server-failure-dr.md` | cutover |
 | AXL-V1-P17 | 17 — P17 Platform Contract — AxLicense V1 v0.1 | `docs/authority/architecture/P17-platform-contract.md` | pending |
 | AXL-V1-P18 | 18 — P18 Engineering & Optimization — AxLicense V1 v0.1 | `docs/authority/architecture/P18-engineering-optimization.md` | pending |
 | AXL-V1-P20 | 20 — P20 Verification Design — AxLicense V1 v0.1 | `docs/authority/verification/P20-verification-design.md` | pending |
@@ -226,3 +226,55 @@ P16.6–P16.9 remain in Notion until their individual cutovers.
 ## M17 entry condition
 
 M17 starts with P16.6 Runtime Flow Atlas — Recovery、Identity Continuity 与 RMA/Rehost. Migration remains per-artifact: fetch the complete Notion source, reproduce it faithfully in Markdown, verify diagrams/explanations and source-derived invariants, update evidence/state/ledger, then mark that Atlas artifact `cutover`. P16.7–P16.9 remain pending until their individual cutovers. Authority migration remains independent of the implementation lifecycle; `active_stage` remains derived from `.aegis` authored manifests and repository evidence, currently P31 AXL-V1-A2 Task Packaging.
+
+## M17 — P16.6 Runtime Flow Atlas cutover
+
+P16.6 was migrated as a location-only Authority move. The repository copy preserves the source Runtime Flow Atlas content without semantic change.
+
+Current Authority target:
+
+`docs/authority/architecture/runtime-flow-atlas/16.6-recovery-rehost.md`
+
+Historical source retained as evidence:
+
+`https://app.notion.com/p/3d94c57a590c81ee98aad09283f51b54`
+
+## M18 — P16.7 Runtime Flow Atlas cutover
+
+P16.7 was migrated as a location-only Authority move. The repository copy preserves the source Runtime Flow Atlas content without semantic change.
+
+Current Authority target:
+
+`docs/authority/architecture/runtime-flow-atlas/16.7-product-claim-ownership.md`
+
+Historical source retained as evidence:
+
+`https://app.notion.com/p/3d94c57a590c81ff861dfba2e23da138`
+
+## M19 — P16.8 Runtime Flow Atlas cutover
+
+P16.8 was migrated as a location-only Authority move. The repository copy preserves the source Runtime Flow Atlas content without semantic change.
+
+Current Authority target:
+
+`docs/authority/architecture/runtime-flow-atlas/16.8-diagnostics-concurrency.md`
+
+Historical source retained as evidence:
+
+`https://app.notion.com/p/3d94c57a590c8196abe8ceeadc88f0fa`
+
+## M20 — P16.9 Runtime Flow Atlas cutover
+
+P16.9 was migrated as a location-only Authority move. The repository copy preserves the source Runtime Flow Atlas content without semantic change.
+
+Current Authority target:
+
+`docs/authority/architecture/runtime-flow-atlas/16.9-server-failure-dr.md`
+
+Historical source retained as evidence:
+
+`https://app.notion.com/p/3d94c57a590c8170ac0df40488f3580e`
+
+M21 entry condition:
+
+P17 Platform Contract — migrate the next remaining authority target without changing the implementation lifecycle.
