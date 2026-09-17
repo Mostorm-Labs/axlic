@@ -12,10 +12,10 @@
     {"id":"AXL-V1-P14","scope":"axlicense","kind":"architecture","version":"1","status":"Current","ref":"docs/authority/architecture/P14-system-architecture.md","depends_on":["AXL-V1-P13"]},
     {"id":"AXL-V1-P15","scope":"axlicense","kind":"module","version":"1","status":"Current","ref":"docs/authority/architecture/P15-module-design.md","depends_on":["AXL-V1-P14"]},
     {"id":"AXL-V1-P16","scope":"axlicense","kind":"flow","version":"1","status":"Current","ref":"docs/authority/architecture/P16-runtime-data-flow.md","depends_on":["AXL-V1-P15"]},
-    {"id":"AXL-V1-P17","scope":"axlicense","kind":"platform","version":"1","status":"Current","ref":"https://app.notion.com/p/3d94c57a590c8149b8e7e0838a5e46b9","depends_on":["AXL-V1-P16"]},
-    {"id":"AXL-V1-P18","scope":"axlicense","kind":"engineering","version":"1","status":"Current","ref":"https://app.notion.com/p/3d94c57a590c8182a28aed9fa1a54a46","depends_on":["AXL-V1-P17"]},
-    {"id":"AXL-V1-P20","scope":"axlicense","kind":"verification","version":"1","status":"Current","ref":"https://app.notion.com/p/3d94c57a590c81cb8b62c8391702d839","depends_on":["AXL-V1-P18"]},
-    {"id":"AXL-V1-P30","scope":"axlicense","kind":"implementation-plan","version":"1","status":"Current","ref":"https://app.notion.com/p/3d94c57a590c813ba9e6fb1396334bd7","depends_on":["AXL-V1-P20"]},
+    {"id":"AXL-V1-P17","scope":"axlicense","kind":"platform","version":"1","status":"Current","ref":"docs/authority/architecture/P17-platform-contract.md","depends_on":["AXL-V1-P16"]},
+    {"id":"AXL-V1-P18","scope":"axlicense","kind":"engineering","version":"1","status":"Current","ref":"docs/authority/architecture/P18-engineering-optimization.md","depends_on":["AXL-V1-P17"]},
+    {"id":"AXL-V1-P20","scope":"axlicense","kind":"verification","version":"1","status":"Current","ref":"docs/authority/verification/P20-verification-design.md","depends_on":["AXL-V1-P18"]},
+    {"id":"AXL-V1-P30","scope":"axlicense","kind":"implementation-plan","version":"1","status":"Current","ref":"docs/authority/implementation/P30-implementation-plan.md","depends_on":["AXL-V1-P20"]},
     {"id":"AXL-V1-A0-P31","scope":"axlicense/A0","kind":"implementation-package","version":"1","status":"Historical","ref":".aegis/packages/AXL-V1-A0-P31.md","depends_on":["AXL-V1-P30"]},
     {"id":"AXL-V1-A1-P31","scope":"axlicense/A1","kind":"implementation-package","version":"1","status":"Historical","ref":".aegis/packages/AXL-V1-A1-P31.md","depends_on":["AXL-V1-P30","AXL-V1-A0-P31"]}
   ]

@@ -2,7 +2,7 @@
   "schema_version": "0.6",
   "projection_basis": {
     "repository_revision": "eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5",
-    "authority_source": "mixed:repository+notion",
+    "authority_source": "repository",
     "manifests": ["project.json","authorities.json","gates.json","evidence.json","integrations.json"]
   },
   "active_stage": "P31 AXL-V1-A2 Task Packaging",
@@ -10,10 +10,10 @@
   "recommended_stage": "P31",
   "recommended_owner": "aegis-implementation",
   "authority_migration": {
-    "status": "migration_active",
-    "current_source_policy": "per-artifact-cutover",
-    "completed_items": ["AXL-V1-P00","AXL-V1-P01","AXL-V1-P02","AXL-V1-P03","AXL-V1-P10","AXL-V1-P11","AXL-V1-P12","AXL-V1-P13","AXL-V1-P14","AXL-V1-P15","AXL-V1-P16","AXL-V1-P16.1","AXL-V1-P16.2","AXL-V1-P16.3","AXL-V1-P16.4","AXL-V1-P16.5"],
-    "next_migration_item": "AXL-V1-P16.6"
+    "status": "migration_complete",
+    "current_source_policy": "repository-cutover",
+    "completed_items": ["AXL-V1-P00","AXL-V1-P01","AXL-V1-P02","AXL-V1-P03","AXL-V1-P10","AXL-V1-P11","AXL-V1-P12","AXL-V1-P13","AXL-V1-P14","AXL-V1-P15","AXL-V1-P16","AXL-V1-P16.1","AXL-V1-P16.2","AXL-V1-P16.3","AXL-V1-P16.4","AXL-V1-P16.5","AXL-V1-P16.6","AXL-V1-P16.7","AXL-V1-P16.8","AXL-V1-P16.9","AXL-V1-P17","AXL-V1-P18","AXL-V1-P20","AXL-V1-P30","AXL-V1-A0-P34-B1","AXL-V1-A0-P35","AXL-V1-A0-P36","AXL-V1-A0-P34","AXL-V1-A0-INTEGRATION","AXL-V1-A1-P33","AXL-V1-A1-P34","AXL-V1-A1-INTEGRATION","AXL-GOV-90","AXL-ROOT"],
+    "next_migration_item": null
   },
   "blocking_gates": [],
   "integration_conformance": [
@@ -38,8 +38,17 @@
     "P16.3 explanatory Runtime Flow Atlas child has been relocated to docs/authority/architecture/runtime-flow-atlas/16.3-activation.md without semantic change; its Notion source is retained as historical evidence. The artifact remains derived from AXL-V1-P16 and introduces no independent lifecycle Authority; LIC-01, ACT-01, and ACT-02 preserve Grant-versus-activation separation, stable entitlement identifiers, atomic canonical activation outcome, same-correlation retry, REHOST_REQUIRED binding protection, offline-request non-authority, and idempotent credential import semantics.",
     "P16.4 explanatory Runtime Flow Atlas child has been relocated to docs/authority/architecture/runtime-flow-atlas/16.4-factory-legacy.md without semantic change; its Notion source is retained as historical evidence. The artifact remains derived from AXL-V1-P16 and introduces no independent lifecycle Authority; FAC-01/FAC-02 and MIG-01-MIG-06 preserve identity-versus-license separation, scoped factory authorization, per-device retry, historical-claim authority, online/offline migration equivalence, Launcher-owned application outbox, approval-versus-license separation, device-bound redemption, canonical migration recovery, and licensed-status watermark removal semantics.",
     "P16.5 explanatory Runtime Flow Atlas child has been relocated to docs/authority/architecture/runtime-flow-atlas/16.5-entitlement-credential-admin.md without semantic change; its Notion source is retained as historical evidence. The artifact remains derived from AXL-V1-P16 and introduces no independent lifecycle Authority; ADM-01-ADM-05 preserve server-authority-versus-offline-observability separation, expected revision concurrency control, atomic successor credential outcomes, authority_revision-versus-credential_generation separation, verify-before-replace, binding release history, suspend/resume semantics, revoke audit retention, and observable-point convergence semantics.",
-    "P16 Runtime Flow Atlas artifacts 16.6-16.9 remain in Notion until individually migrated; the next migration item is AXL-V1-P16.6.",
-    "Remaining human-readable Current Authority is still in Notion until individual cutover.",
+    "P16.6 explanatory Runtime Flow Atlas child has been relocated to docs/authority/architecture/runtime-flow-atlas/16.6-recovery-rehost.md without semantic change; its Notion source is retained as historical evidence. The artifact remains derived from AXL-V1-P16 and introduces no independent lifecycle Authority; REC-01-REC-04 and RMA-01 preserve physical-device continuity, credential-only recovery, trusted identity-continuity recovery, provider pinning, and atomic one-active-binding rehost semantics.",
+    "P16.7 explanatory Runtime Flow Atlas child has been relocated to docs/authority/architecture/runtime-flow-atlas/16.7-product-claim-ownership.md without semantic change; its Notion source is retained as historical evidence. The artifact remains derived from AXL-V1-P16 and introduces no independent lifecycle Authority; OWN-01-OWN-05 and X-11 preserve Device-proof-versus-human/org-authority separation, opaque QR recovery, product-management credential separation, high-authority ownership transfer, support verification limits, and durable association commit/retry semantics.",
+    "P16.8 explanatory Runtime Flow Atlas child has been relocated to docs/authority/architecture/runtime-flow-atlas/16.8-diagnostics-concurrency.md without semantic change; its Notion source is retained as historical evidence. The artifact remains derived from AXL-V1-P16 and introduces no independent lifecycle Authority; OPS-01/OPS-02 and X-01-X-04 preserve minimum-disclosure diagnostics, sanitized support bundles, machine-wide single-writer mutation, canonical/local crash recovery, classified state recovery, and generation-safe upgrade/rollback semantics.",
+    "P16.9 explanatory Runtime Flow Atlas child has been relocated to docs/authority/architecture/runtime-flow-atlas/16.9-server-failure-dr.md without semantic change; its Notion source is retained as historical evidence. The artifact remains derived from AXL-V1-P16 and introduces no independent lifecycle Authority; X-05-X-10 preserve same-correlation retries, canonical signing/commit consistency, perpetual offline runtime during outage, fenced disaster recovery, verifier-first signing-key rollout, and context-bound assertion replay protection.",
+    "P16 Runtime Flow Atlas artifacts 16.1-16.9 have been individually migrated.",
+    "P17, P18, P20, and P30 Current Authority artifacts have been relocated to their repository targets without semantic change; their Notion sources are retained as historical evidence.",
+    "A0 P34 blocked review, P35 classification, P36 reverification, P34 rereview, and integration closure have been relocated as historical repository artifacts without changing Gate decisions or Integration occurrence.",
+    "A1 P33 reconciliation, P34 review, and integration closure have been relocated as historical repository artifacts without changing Gate decisions or Integration occurrence.",
+    "The governance decision log and root Product & System Authority index have been relocated to docs/authority/governance/decision-log.md and docs/authority/index.md without semantic change.",
+    "The two P31 packages remain repository-native at .aegis/packages/AXL-V1-A0-P31.md and .aegis/packages/AXL-V1-A1-P31.md; their Notion exports were not duplicated.",
+    "All supplied Notion export artifacts are now cut over or explicitly repository-native; no migration item remains.",
     "Authority relocation does not change lifecycle ownership: active_stage remains P31 AXL-V1-A2 Task Packaging and earliest_untrusted_layer remains implementation.",
     "No standalone A1 P32 Notion page was discovered by the M0 scoped search; the root Authority records its lifecycle fact.",
     "No deterministic tools.aegis_state implementation was found in the inspected repository tree, so this projection must be revalidated when deterministic state tooling is introduced."
