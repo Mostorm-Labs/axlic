@@ -15,7 +15,7 @@ semantic_change: none
 
 > 🧱
 >
-> **Authority status: Accepted / P30 AxLicense V1 Implementation Planning + D-091 client-first language-stack reconciliation CLOSED — 2026-09-13.** 本页把 trusted P02/P03 + P10–P20 Current Authority 转成 dependency-aware、evidence-gated vertical implementation plan。Current implementation direction is now **C++20/CMake for the Windows `axlic.exe` client, Node.js + TypeScript for the server, PostgreSQL for canonical persistence, with client-first sequencing**. Earlier Rust/Cargo wording on this page is superseded where it conflicts with D-091. **D-104（2026-09-20）targeted implementation-plan reconciliation** amends the server realization to a **pnpm workspace + Turborepo monorepo（`apps/server`）** with **NestJS 12 + TypeORM**；PostgreSQL canonical persistence is unchanged. Earlier §3 plain-repository `server/` topology wording on this page is superseded where it conflicts with D-104. 本页不授权 coding，也不冻结任何 P31 EXECUTION_CLOSURE_CONTRACT。
+> **Authority status: Accepted / P30 AxLicense V1 Implementation Planning + D-091 client-first language-stack reconciliation CLOSED — 2026-09-13.** 本页把 trusted P02/P03 + P10–P20 Current Authority 转成 dependency-aware、evidence-gated vertical implementation plan。Current implementation direction is now **C++20/CMake for the Windows `axlic.exe` client, Node.js + TypeScript for the server, PostgreSQL for canonical persistence, with client-first sequencing**. Earlier Rust/Cargo wording on this page is superseded where it conflicts with D-091. 本页不授权 coding，也不冻结任何 P31 EXECUTION_CLOSURE_CONTRACT。
 
 ## 1. Stage contract
 
@@ -47,12 +47,10 @@ Client build/dependency direction:
 - third-party dependencies必须 pinned/locked，exact compiler/CMake/dependency versions由首个 P31 package固化；
 - canonical CBOR/crypto parser surface保持小而可审阅，优先显式 wrapper 而不是把第三方 object model扩散进 domain code。
 
-Server direction — D-104 Current Authority：
+Server direction:
 
-- supported Node.js LTS line + TypeScript strict mode，realized as a **NestJS 12 modular-monolith application**；
-- repo JS workspace = **pnpm workspace + Turborepo**（`apps/server` + `packages/*`）；Turborepo packages只是 build-orchestration units，不得解释为独立部署微服务（P14 modular monolith 边界不变）；NestJS modules必须映射 P15 logical modules；
-- data access = **TypeORM** 作为 PostgreSQL adapter，只能经 `CanonicalUnitOfWork` 触达（见 §2.2）；
-- package manager/runtime/dependency exact versions在首次 server P31 package固化（方向已由 D-104 冻结为 pnpm + NestJS 12 + TypeORM，精确版本仍归 A2 P31 package/lockfile）；
+- supported Node.js LTS line + TypeScript strict mode；
+- package manager/runtime/dependency exact versions在首次 server P31 package固化；
 - PostgreSQL、SigningPort、API carrier均通过清晰 adapter/port 边界实现；
 - TypeScript server必须消费与 C++ client相同的 checked-in golden vectors/semantic registry。
 
@@ -63,8 +61,6 @@ V1 canonical server persistence implementation选择 **PostgreSQL**，以 transa
 - Server 仍保持 modular monolith；选择 PostgreSQL 不改变 P14 logical boundaries。
 - Product SaaS 数据不得进入该 canonical DB。
 - DB schema/migrations属于 repository authority reality，必须由 scenario tests验证，不得只靠 ORM model。
-- TypeORM entity models不是 schema authority — SQL migrations仍然是唯一的 schema authority，必须由 EV-02 scenario tests对 real PostgreSQL 验证（§7.3）。
-- TypeORM DataSource/EntityManager只能经 `CanonicalUnitOfWork` 触达（P15 §9 mutation-path 规则）；domain modules不得直接注入 repositories；`LicenseSigningPort`保持 DB-free。
 
 ### 2.3 Signing realization
 
@@ -79,10 +75,10 @@ V1 canonical server persistence implementation选择 **PostgreSQL**，以 transa
 
 ## 3. Repository topology
 
-Target topology — D-091 + D-104 Current Authority：
+Target topology — D-091 Current Authority：
 
 ```
-CMakeLists.txt            # root C++ build entry — unchanged, outside the JS workspace
+CMakeLists.txt
 cmake/
 client/
   CMakeLists.txt
@@ -94,22 +90,16 @@ client/
     transport/       # HTTPS/control client adapters
   app/               # axlic.exe process/CLI entry
   tests/
-package.json              # private pnpm workspace root
-pnpm-workspace.yaml       # workspace covers apps/* and packages/* only
-turbo.json                # Turborepo pipeline for JS build/test/lint tasks
-apps/
-  server/                 # NestJS 12 modular monolith (D-104)
-    package.json
-    tsconfig.json
-    nest-cli.json
-    src/
-      domain/        # P10-P13 server-side domain semantics/invariants
-      application/   # OperationCore orchestration
-      persistence/   # PostgreSQL/TypeORM adapters; migrations; CanonicalUnitOfWork
-      signing/       # SigningPort adapters; no production private key in repo
-      transport/     # HTTP/control plane
-    tests/
-packages/                 # future shared TS contracts/tools; may be empty in A2
+server/
+  package.json
+  tsconfig.json
+  src/
+    domain/          # P10-P13 server-side domain semantics/invariants
+    application/     # OperationCore orchestration
+    persistence/     # PostgreSQL adapters/migrations
+    signing/         # SigningPort adapters; no production private key in repo
+    transport/       # HTTP/control plane
+  tests/
 reference/
   vectors/           # frozen semantic fixtures + exact canonical bytes shared by C++/TS
   model/             # independent transition oracle/test-only logic
@@ -127,12 +117,9 @@ Rules:
 - `client/src/core`不得依赖 Node.js、SQL、Product SaaS或 server implementation；
 - `client/src/wire`只实现 P12/P17/P20 frozen artifact semantics，不拥有 commercial/domain mutation；
 - `client/src/windows`只实现 platform ports，不决定 entitlement/commercial authority；
-- `apps/server/src/domain`不得依赖 Product SaaS IAM/Organization/SKU truth；
+- `server/src/domain`不得依赖 Product SaaS IAM/Organization/SKU truth；
 - C++ client 与 TypeScript server 对 authorization-critical CBOR 必须使用同一 P20 EV-01 golden corpus；任何 byte drift直接视为兼容/安全失败；
-- Product-specific NearHub backend只通过 API/ref client消费 AxLicense，不进入本 repo canonical domain；
-- JS workspace仅覆盖 `apps/*` 与 `packages/*`；C++/CMake/Python 工具留在 JS workspace之外，仍由 CI 直接驱动，root `CMakeLists.txt` 不变；
-- Turborepo只编排 JS build/test/lint 任务，不拥有 C++ builds；
-- A0/A1 既有 CI workflow 路径与证据链不得因 monorepo 重构失效。
+- Product-specific NearHub backend只通过 API/ref client消费 AxLicense，不进入本 repo canonical domain。
 
 ## 4. Dependency graph
 
@@ -157,7 +144,7 @@ Refresh/Revision   Device Assertion Offline Activation
      Windows Hardening + Release Qualification
 ```
 
-**Client-first rule:** A0 与 A1 不要求真实 AxLicense Server即可 Gate-close；A2 才引入 pnpm/Turborepo workspace + NestJS 12 + TypeORM + PostgreSQL。A4/A5/A6 在 A3 之后可以并行开发，但 P31 packages必须分别冻结 scope，不允许在共享 module/contract 上无协调并发改写同一 authority surface。
+**Client-first rule:** A0 与 A1 不要求真实 AxLicense Server即可 Gate-close；A2 才引入 Node.js/TypeScript + PostgreSQL。A4/A5/A6 在 A3 之后可以并行开发，但 P31 packages必须分别冻结 scope，不允许在共享 module/contract 上无协调并发改写同一 authority surface。
 
 ## 5. Vertical slices
 
@@ -204,7 +191,7 @@ Does not include canonical Device registration or PostgreSQL.
 
 Includes:
 
-- pnpm/Turborepo workspace bootstrap（root `package.json`、`pnpm-workspace.yaml`、`turbo.json`）+ NestJS 12 server scaffold + strict build/test configuration；
+- Node.js/TypeScript server bootstrap and strict build/test configuration；
 - PostgreSQL migrations/canonical transaction baseline；
 - TransportApi / CallerAuth bootstrap / OperationCore；
 - DeviceRegistry + IdentityAssurancePolicy + RegisterDeviceIdentity；
@@ -325,10 +312,10 @@ Rule: evidence在早期 slice出现并不自动代表 P20 blocking family最终 
 Minimum matrix：
 
 - **Windows / MSVC:** CMake configure/build、C++ unit tests、`axlic.exe` CLI/local-state/CNG software-provider tests、EV-01 client vectors、W1 benchmark smoke；
-- **Linux:** pnpm install（frozen lockfile）+ Turborepo build/lint/test for `apps/server`、PostgreSQL integration/lifecycle tests、reference model/tools；
+- **Linux:** Node.js/TypeScript server build/test、PostgreSQL integration/lifecycle tests、reference model/tools；
 - **Cross-language conformance:** C++ verifier/encoder-facing fixtures and TypeScript server encoder/verifier must consume the same checked-in EV-01 golden vectors；
 - formatting/lint/static checks：C++ formatting/static analysis + TypeScript formatting/lint/typecheck；
-- exact compiler/CMake/Node/pnpm/NestJS/TypeORM/dependency versions pinned by the owning P31 package/lockfiles；no floating `latest` in Gate evidence。
+- exact compiler/CMake/Node/package/dependency versions pinned by the owning P31 package/lockfiles；no floating `latest` in Gate evidence。
 
 Hosted Windows runner不能替代 EV-03 physical TPM qualification。
 

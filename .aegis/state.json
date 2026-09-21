@@ -51,7 +51,6 @@
     "All supplied Notion export artifacts are now cut over or explicitly repository-native; no migration item remains.",
     "Authority relocation does not change lifecycle ownership: active_stage remains P31 AXL-V1-A2 Task Packaging and earliest_untrusted_layer remains implementation.",
     "No standalone A1 P32 Notion page was discovered by the M0 scoped search; the root Authority records its lifecycle fact.",
-    "No deterministic tools.aegis_state implementation was found in the inspected repository tree, so this projection must be revalidated when deterministic state tooling is introduced.",
-    "D-104 (2026-09-20) targeted P30 implementation-plan amendment: server realization direction is now a pnpm workspace + Turborepo monorepo (apps/server) with NestJS 12 + TypeORM; PostgreSQL canonical persistence unchanged. No P10-P18/P20 authority changed; active_stage remains P31 AXL-V1-A2 Task Packaging."
+    "No deterministic tools.aegis_state implementation was found in the inspected repository tree, so this projection must be revalidated when deterministic state tooling is introduced."
   ]
 }

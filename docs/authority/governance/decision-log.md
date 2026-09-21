@@ -1726,19 +1726,3 @@ No frozen requirement failed and no newly discovered high-impact uncovered failu
 AXL-V1-A1 P34 Gate-closed result `a1a37d07d421320d95b7d49ed94ad0ffa7c3cd25` was integrated into canonical `main` through [PR #2](https://github.com/Mostorm-Labs/axlic/pull/2). Merge commit `eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5` has parents `aa481ad20860715112fe9bc696eb7d6bdef1c2ea` and exact Gate-reviewed result `a1a37d07d421320d95b7d49ed94ad0ffa7c3cd25`; both the merge commit and Gate-reviewed result resolve to tree `1317485e61181a058f760f9005089607565a4f7f`. Therefore repository integration is conforming and introduces no content drift.
 
 **Successor routing:** P30 dependency authority places A2 after A1. With A1 now Gate-closed and repository-integrated, earliest untrusted downstream layer becomes **P31 AXL-V1-A2 Task Packaging**. `aegis-implementation` is the next Primary Owner. A2 P31 packaging is authorized against canonical `main@eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5`; **P32 coding remains unauthorized** until the A2 `EXECUTION_CLOSURE_CONTRACT` is frozen/materialized.
-
-## P30 targeted implementation-plan reconciliation — 2026-09-20
-
-### D-104 — Server stack amended: pnpm/Turborepo monorepo + NestJS 12 + TypeORM
-
-**State: ACCEPTED / P30 CURRENT IMPLEMENTATION PLAN AUTHORITY / 2026-09-20**
-
-用户在 A2 P31 尚未冻结前调整服务端实现策略：仓库 JS workspace 改为 **pnpm workspace + Turborepo monorepo（`apps/server` + `packages/*`）**；AxLicense Server 框架改为 **NestJS 12**（modular monolith realization）；数据访问层采用 **TypeORM** 作为 PostgreSQL adapter；PostgreSQL 继续作为 V1 canonical persistence implementation。
-
-**Impact classification:** 该变化属于 P30 implementation-plan authority change，不改变 P10–P18 产品/语义/架构/平台契约，也不改变 P20 verification obligations。P14 modular monolith + 单一 ACID canonical boundary 不变，Turborepo packages 仅为 build-orchestration units、不得解释为独立部署微服务；P15 §9 mutation-path/`CanonicalUnitOfWork` 规则约束 NestJS/TypeORM 实现（domain modules 不得直接持有 repositories，`LicenseSigningPort` 保持 DB-free）；TypeORM entity models 不是 schema authority，SQL migrations 仍由 EV-02 scenario tests 对 real PostgreSQL 验证；P17 deterministic CBOR + P20 EV-01 golden corpus 跨语言合同不变；P18 budgets/query-shape 规则继续适用。
-
-**Version pinning:** exact Node.js/pnpm/NestJS/TypeORM/@nestjs/typeorm/dependency versions 由 AXL-V1-A2 P31 package/lockfile 固化；no floating `latest` in Gate evidence。
-
-**Scope guard:** JS workspace 仅覆盖 `apps/*` 与 `packages/*`；C++ 客户端/cmake/bench/reference/integration-tests 原位不动，root `CMakeLists.txt` 不变，A0/A1 既有 CI workflow 路径与证据链不受影响。
-
-**Governance result:** P30 §3 旧 plain-repo `server/` topology 措辞在与本决议冲突处被 supersede；其余 P30 principles（vertical slices、evidence allocation、P31-per-slice closure）继续有效。当前 earliest untrusted layer 仍为 **P31 AXL-V1-A2 Task Packaging**（按 D-104 方向打包）；substantive coding 仍未授权。
