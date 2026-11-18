@@ -3,12 +3,12 @@ authority_id: AXL-V1-P20
 stage: P20
 scope: axlicense
 kind: verification-design
-version: "1"
+version: "2"
 status: current
 source_type: notion
 source_url: https://app.notion.com/p/3d94c57a590c81cb8b62c8391702d839
 migration_class: location-only
-semantic_change: none
+semantic_change: "v2 (2026-11-18, D-105): added §3.5 structural numeric bounds (256 entitlements / 64 KiB artifact / 1024-byte text / depth 8 / defense item bound 8192) backfilled from spec 001 Assumptions; no change to crypto profile or evidence classes"
 ---
 
 # 20 — P20 Verification Design — AxLicense V1 v0.1
@@ -76,6 +76,17 @@ P17 已冻结 exact canonical bytes；P20 冻结 V1 接受的 crypto profile。
 ### 3.4 Challenge digest
 
 P17 定义的 `challenge_digest` 使用本 profile 的 **SHA-256** 对 exact `ChallengeSigningInputV1` bytes 计算。不得对 parse 后对象、JSON carrier 或 re-encoded equivalent object 计算替代 digest。
+
+### 3.5 Structural numeric bounds（凭证工件数值冻结面）
+
+> 2026-11-18 回溯修订（D-105）：spec 001（aw-saas-platform `apps/api/specs/001-license-entitlement-system`，Assumptions「需求权威」条款：三方冲突时以该 spec 锁定取舍为准并回溯修订）锁定了凭证工件的数值面，本节将其固化为本页冻结面。原实现 `qcbor_codec.cpp` 的 `kMaximumItems=512` 逐项计数缺陷 + `kMaximumEntitlements=128` 使实际可验证上限仅 ≈37 条/工件，低于本冻结面；已按 D-105 修复并以 `reference/vectors/a0/limits.json` 满额/边界语料回归。
+
+- 单凭证 entitlement 条目上限：**256**（聚合去重合并后计数）。
+- 单凭证工件尺寸上限：**64 KiB（65536 bytes）**；聚合超限（条目数或字节，两条件并列）在签发前整体拒绝，验证侧 fail closed。
+- 单文本字段上限：**1024 bytes**（UTF-8 编码后字节数）。
+- 结构嵌套深度上限：**8**。
+- 结构遍历 item 计数上界为实现防御参数（FM-09 bounded parser），非合同面：必须容纳满额 256 条全约束 payload 的逐项展开（≈5910 items），当前实现取 **8192**；该参数只允许上调不允许低于满额展开需求。
+- 满额/边界语料（`AXL-V1-A0-EV01-LIMITS-v1`）纳入 EV-01 语料合同：满额 256 条 presence 正例、满额 256 条 bounded+constraint 正例、257 条负例、聚合字节超限负例、item 计数超界负例为最低必含集合。
 
 ## 4. Failure-mode / evidence map
 

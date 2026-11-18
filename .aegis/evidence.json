@@ -78,6 +78,8 @@
     {"id":"EV-GIT-A1-RESULT","status":"available","kind":"repository-revision","ref":"a1a37d07d421320d95b7d49ed94ad0ffa7c3cd25"},
     {"id":"EV-GIT-A1-INTEGRATION","status":"available","kind":"repository-revision","ref":"eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5"},
     {"id":"EV-A1-PHYSICAL-TPM","status":"available","kind":"external-evidence-digest","ref":"sha256:87347e9feb6715ce9515840ecdddc85280f55baf126eb2c4e79ce1da22914cd7"},
+    {"id":"EV-GIT-A0-LIMITS-CORPUS","status":"available","kind":"repository-artifact","ref":"reference/vectors/a0/limits.json"},
+    {"id":"EV-D105-LIMITS-CORPUS-DIGEST","status":"available","kind":"external-evidence-digest","ref":"sha256:291df89a11bbb1f25b70ef608de76db87d3aa79eb972c2d0a28da3b5b82800ae"},
     {"id":"EV-M0-REPOSITORY-TREE","status":"available","kind":"repository-inspection","ref":"main@eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5"}
   ]
 }

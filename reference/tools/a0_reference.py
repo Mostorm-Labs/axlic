@@ -311,10 +311,118 @@ def _canonical_json(value: Any) -> str:
     return json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
+def _limits_presence_entries(count: int) -> list[dict[str, Any]]:
+    return [
+        {
+            "entitlement_id": f"limits.presence.{index:03d}",
+            "product_id": "limits",
+            "right_kind": "runtime",
+            "grant_semantics": "presence",
+            "validity": {"kind": "perpetual"},
+        }
+        for index in range(count)
+    ]
+
+
+def _limits_bounded_entries(count: int) -> list[dict[str, Any]]:
+    return [
+        {
+            "entitlement_id": f"limits.bounded.{index:03d}",
+            "product_id": "limits",
+            "right_kind": "runtime",
+            "grant_semantics": "bounded_u64",
+            "validity": {"kind": "bounded", "not_before": 1767225600, "not_after": 4102444800},
+            "constraint": {"kind": "max_u64", "value": index + 1},
+        }
+        for index in range(count)
+    ]
+
+
+def _limits_oversize_entries() -> list[dict[str, Any]]:
+    # 32 entries whose single texts each stay within the 1024-byte text bound
+    # but whose aggregate artifact exceeds the 64 KiB artifact bound.
+    return [
+        {
+            "entitlement_id": "k" * 1010 + f"{index:03d}",
+            "product_id": "p" * 1024,
+            "right_kind": "runtime",
+            "grant_semantics": "presence",
+            "validity": {"kind": "perpetual"},
+        }
+        for index in range(32)
+    ]
+
+
+def _limits_semantic(
+    credential_id: str,
+    authority_revision: int,
+    credential_generation: int,
+    entries: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "schema_version": [1, 0],
+        "credential_id": credential_id,
+        "license_grant_id": "grant-limits",
+        "authority_revision": authority_revision,
+        "binding_id": "binding-limits",
+        "device_id": "device-limits",
+        "credential_generation": credential_generation,
+        "issued_at": 1767225600,
+        "entitlements": entries,
+    }
+
+
+def generate_limits_corpus() -> dict[str, Any]:
+    # Frozen numeric face (P20 / spec 001): at most 256 entitlement entries and
+    # at most 64 KiB per credential artifact. The item-by-item structural walk
+    # of a full 256-entry all-constrained payload is ~5910 items, so the
+    # denial-of-service item bound is 8192.
+    full_presence = _positive(
+        "limits-full-presence-256",
+        _limits_semantic("cred-limits-presence", 11, 5, _limits_presence_entries(256)),
+    )
+    full_bounded = _positive(
+        "limits-full-bounded-256",
+        _limits_semantic("cred-limits-bounded", 12, 6, _limits_bounded_entries(256)),
+    )
+
+    negatives = [
+        {
+            "id": "limits-excess-entitlements-257",
+            "artifact_hex": _signed_artifact(
+                encode_payload(_limits_semantic("cred-limits-excess", 13, 7, _limits_bounded_entries(257)))
+            ).hex(),
+            "expected_status": "invalid",
+        },
+        {
+            "id": "limits-oversize-artifact-bytes",
+            "artifact_hex": _signed_artifact(
+                encode_payload(_limits_semantic("cred-limits-oversize", 14, 8, _limits_oversize_entries()))
+            ).hex(),
+            "expected_status": "invalid",
+        },
+        {
+            "id": "limits-excess-item-count-8193",
+            "artifact_hex": _signed_artifact(cbor_array(cbor_uint(0) for _ in range(8193))).hex(),
+            "expected_status": "invalid",
+        },
+    ]
+
+    return {
+        "corpus_id": "AXL-V1-A0-EV01-LIMITS-v1",
+        "algorithm_id": ALGORITHM_ID,
+        "key_id": KEY_ID,
+        "public_key_xy_hex": public_xy().hex(),
+        "positives": [full_presence, full_bounded],
+        "negatives": negatives,
+    }
+
+
 def write_outputs(output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     corpus = generate_corpus()
     (output_dir / "corpus.json").write_text(_canonical_json(corpus), encoding="utf-8", newline="\n")
+    (output_dir / "limits.json").write_text(_canonical_json(generate_limits_corpus()), encoding="utf-8", newline="\n")
     (output_dir / "TEST_ONLY_key.json").write_text(
         _canonical_json(
             {
@@ -337,11 +445,25 @@ def write_outputs(output_dir: Path) -> None:
     (output_dir / "absent_state.json").write_text(_canonical_json({"state": "absent"}), encoding="utf-8", newline="\n")
 
 
-def verify_checked_in(corpus_path: Path, revision: str, report_path: Path | None) -> None:
+def _verify_low_s_signature(public: Any, vector: dict[str, Any]) -> None:
+    raw = bytes.fromhex(vector["signature_hex"])
+    r = int.from_bytes(raw[:32], "big")
+    s = int.from_bytes(raw[32:], "big")
+    if len(raw) != 64 or not (0 < r < CURVE_ORDER) or not (0 < s <= CURVE_ORDER // 2):
+        raise SystemExit(f"invalid fixed-width low-S fixture: {vector['id']}")
+    public.verify(encode_dss_signature(r, s), bytes.fromhex(vector["signing_input_hex"]), ec.ECDSA(hashes.SHA256()))
+
+
+def verify_checked_in(corpus_path: Path, revision: str, report_path: Path | None, limits_path: Path) -> None:
     expected = json.loads(corpus_path.read_text(encoding="utf-8"))
     actual = generate_corpus()
     if expected != actual:
         raise SystemExit("checked-in A0 corpus differs from independent regeneration")
+
+    expected_limits = json.loads(limits_path.read_text(encoding="utf-8"))
+    actual_limits = generate_limits_corpus()
+    if expected_limits != actual_limits:
+        raise SystemExit("checked-in A0 limits corpus differs from independent regeneration")
 
     public = ec.EllipticCurvePublicNumbers(
         int.from_bytes(bytes.fromhex(actual["public_key_xy_hex"])[:32], "big"),
@@ -350,15 +472,21 @@ def verify_checked_in(corpus_path: Path, revision: str, report_path: Path | None
     ).public_key()
     results = []
     for vector in actual["positives"]:
-        raw = bytes.fromhex(vector["signature_hex"])
-        r = int.from_bytes(raw[:32], "big")
-        s = int.from_bytes(raw[32:], "big")
-        if len(raw) != 64 or not (0 < r < CURVE_ORDER) or not (0 < s <= CURVE_ORDER // 2):
-            raise SystemExit(f"invalid fixed-width low-S fixture: {vector['id']}")
-        public.verify(encode_dss_signature(r, s), bytes.fromhex(vector["signing_input_hex"]), ec.ECDSA(hashes.SHA256()))
+        _verify_low_s_signature(public, vector)
         results.append({"id": vector["id"], "result": "PASS"})
 
+    limits_public = ec.EllipticCurvePublicNumbers(
+        int.from_bytes(bytes.fromhex(actual_limits["public_key_xy_hex"])[:32], "big"),
+        int.from_bytes(bytes.fromhex(actual_limits["public_key_xy_hex"])[32:], "big"),
+        ec.SECP256R1(),
+    ).public_key()
+    limits_results = []
+    for vector in actual_limits["positives"]:
+        _verify_low_s_signature(limits_public, vector)
+        limits_results.append({"id": vector["id"], "result": "PASS"})
+
     corpus_hash = hashlib.sha256(corpus_path.read_bytes()).hexdigest()
+    limits_hash = hashlib.sha256(limits_path.read_bytes()).hexdigest()
     report = {
         "artifact_id": "EV-01-A0-independent-reference",
         "authority_revision": "P20-FR019-v0.1",
@@ -368,6 +496,9 @@ def verify_checked_in(corpus_path: Path, revision: str, report_path: Path | None
         "failures": [],
         "fixture_or_corpus_id": actual["corpus_id"],
         "implementation_revision": revision,
+        "limits_corpus_sha256": limits_hash,
+        "limits_fixture_or_corpus_id": actual_limits["corpus_id"],
+        "limits_vectors": limits_results,
         "result": "PASS",
         "vectors": results,
     }
@@ -383,6 +514,7 @@ def main() -> None:
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--output-dir", type=Path, default=Path("reference/vectors/a0"))
     parser.add_argument("--corpus", type=Path, default=Path("reference/vectors/a0/corpus.json"))
+    parser.add_argument("--limits", type=Path, default=Path("reference/vectors/a0/limits.json"))
     parser.add_argument("--implementation-revision", default="WORKTREE")
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
@@ -391,7 +523,7 @@ def main() -> None:
     if args.generate:
         write_outputs(args.output_dir)
     else:
-        verify_checked_in(args.corpus, args.implementation_revision, args.report)
+        verify_checked_in(args.corpus, args.implementation_revision, args.report, args.limits)
 
 
 if __name__ == "__main__":
