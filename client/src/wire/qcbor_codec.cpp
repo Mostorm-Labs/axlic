@@ -18,9 +18,15 @@ namespace {
 
 constexpr std::size_t kMaximumArtifactSize = 64U * 1024U;
 constexpr std::size_t kMaximumTextSize = 1024U;
-constexpr std::size_t kMaximumItems = 512U;
+// Frozen numeric face (P20 / spec 001 Assumptions): at most 256 entitlements per
+// credential. kMaximumItems must accommodate the item-by-item walk of a full
+// artifact: a 256-entry all-constrained payload expands to ~22 + 256 * 23 items,
+// so the previous 512-item bound rejected valid full credentials (~37 usable
+// entries). 8192 keeps headroom while staying a denial-of-service bound paired
+// with the 64 KiB artifact-size bound.
+constexpr std::size_t kMaximumItems = 8192U;
 constexpr std::uint8_t kMaximumNestingDepth = 8U;
-constexpr std::size_t kMaximumEntitlements = 128U;
+constexpr std::size_t kMaximumEntitlements = 256U;
 constexpr std::string_view kCredentialDomain = "axlicense.credential";
 
 UsefulBufC as_useful(const std::span<const std::uint8_t> bytes) {

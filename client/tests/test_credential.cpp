@@ -40,6 +40,12 @@ nlohmann::json corpus() {
   return nlohmann::json::parse(stream);
 }
 
+nlohmann::json limits_corpus() {
+  std::ifstream stream(std::string(AXLIC_SOURCE_DIR) + "/reference/vectors/a0/limits.json");
+  REQUIRE(stream.good());
+  return nlohmann::json::parse(stream);
+}
+
 std::array<std::uint8_t, 64> public_key(const std::string& hex) {
   const auto bytes = from_hex(hex);
   REQUIRE(bytes.size() == 64U);
@@ -152,6 +158,39 @@ TEST_CASE("production verifier fails closed for every frozen negative vector") {
                                        ? axlic::wire::VerificationStatus::unsupported
                                        : axlic::wire::VerificationStatus::invalid;
       REQUIRE(result.status == expected_status);
+      REQUIRE_FALSE(result.credential.has_value());
+    }
+  }
+}
+
+TEST_CASE("production verifier accepts full-capacity limit vectors") {
+  const auto vectors = limits_corpus();
+  const axlic::wire::TrustedPublicKey key{
+      .key_id = vectors["key_id"].get<std::string>(),
+      .public_key_xy = public_key(vectors["public_key_xy_hex"].get<std::string>()),
+  };
+  for (const auto& vector : vectors["positives"]) {
+    DYNAMIC_SECTION(vector["id"].get<std::string>()) {
+      const auto artifact = from_hex(vector["artifact_hex"].get<std::string>());
+      const auto result = axlic::wire::verify_credential(artifact, std::span{&key, 1U});
+      REQUIRE(result.status == axlic::wire::VerificationStatus::valid);
+      REQUIRE(result.credential.has_value());
+      REQUIRE(result.credential->entitlements.size() == 256U);
+    }
+  }
+}
+
+TEST_CASE("production verifier fails closed for every limit negative vector") {
+  const auto vectors = limits_corpus();
+  for (const auto& vector : vectors["negatives"]) {
+    DYNAMIC_SECTION(vector["id"].get<std::string>()) {
+      const axlic::wire::TrustedPublicKey key{
+          .key_id = vectors["key_id"].get<std::string>(),
+          .public_key_xy = public_key(vectors["public_key_xy_hex"].get<std::string>()),
+      };
+      const auto artifact = from_hex(vector["artifact_hex"].get<std::string>());
+      const auto result = axlic::wire::verify_credential(artifact, std::span{&key, 1U});
+      REQUIRE(result.status == axlic::wire::VerificationStatus::invalid);
       REQUIRE_FALSE(result.credential.has_value());
     }
   }
