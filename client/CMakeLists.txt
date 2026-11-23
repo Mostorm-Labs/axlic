@@ -23,17 +23,34 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(qcbor)
 
+# Embedded trust floor: the checked-in packaging-time public-key artifact is
+# compiled into axlic_core via a generated source file. An empty key set is
+# the initial production state (fail-closed).
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/keyring/trust-floor.json" AXLIC_TRUST_FLOOR_DOCUMENT)
+string(JSON AXLIC_TRUST_FLOOR_FORMAT ERROR_VARIABLE trust_floor_json_error GET "${AXLIC_TRUST_FLOOR_DOCUMENT}" format)
+if(trust_floor_json_error OR NOT AXLIC_TRUST_FLOOR_FORMAT STREQUAL "axlic-trust-floor")
+  message(FATAL_ERROR "client/keyring/trust-floor.json is not a valid axlic-trust-floor document: ${trust_floor_json_error}")
+endif()
+set(TRUST_FLOOR_JSON "${AXLIC_TRUST_FLOOR_DOCUMENT}")
+configure_file(
+  src/core/embedded_trust_floor.cpp.in
+  "${CMAKE_CURRENT_BINARY_DIR}/generated/embedded_trust_floor.cpp"
+  @ONLY
+)
+
 add_library(axlic_core STATIC
   src/core/device_reference.cpp
   src/core/identity.cpp
   src/core/identity_command.cpp
   src/core/runtime_license.cpp
+  src/core/trust_keyring.cpp
   src/windows/cng_identity_provider.cpp
   src/windows/machine_state.cpp
   src/windows/machine_state_repository.cpp
   src/windows/mutation_lock.cpp
   src/wire/credential.cpp
   src/wire/qcbor_codec.cpp
+  "${CMAKE_CURRENT_BINARY_DIR}/generated/embedded_trust_floor.cpp"
 )
 target_compile_features(axlic_core PUBLIC cxx_std_20)
 target_include_directories(axlic_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -84,6 +101,7 @@ if(BUILD_TESTING)
     tests/test_machine_state_repository.cpp
     tests/test_mutation_lock.cpp
     tests/test_runtime_license.cpp
+    tests/test_trust_keyring.cpp
   )
   target_link_libraries(axlic_unit_tests PRIVATE axlic_core Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
   target_compile_features(axlic_unit_tests PRIVATE cxx_std_20)

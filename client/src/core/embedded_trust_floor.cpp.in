@@ -1,0 +1,18 @@
+#include "axlic/core/trust_keyring.hpp"
+
+#include <string_view>
+
+namespace axlic::core {
+namespace {
+
+// Generated at configure time from client/keyring/trust-floor.json.
+// The raw-string delimiter is chosen so no JSON content can terminate it.
+constexpr char kEmbeddedTrustFloorJson[] = R"axlic(@TRUST_FLOOR_JSON@)axlic";
+
+}  // namespace
+
+std::string_view embedded_trust_floor_json() noexcept {
+  return kEmbeddedTrustFloorJson;
+}
+
+}  // namespace axlic::core
