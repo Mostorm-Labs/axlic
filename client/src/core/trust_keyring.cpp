@@ -138,4 +138,8 @@ KeyringRead load_trust_keyring_from(
   return read;
 }
 
+KeyringRead load_trust_keyring(const std::filesystem::path& state_root) {
+  return load_trust_keyring_from(embedded_trust_floor_json(), state_root);
+}
+
 }  // namespace axlic::core

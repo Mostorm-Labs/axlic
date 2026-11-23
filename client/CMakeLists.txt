@@ -43,6 +43,7 @@ add_library(axlic_core STATIC
   src/core/identity.cpp
   src/core/identity_command.cpp
   src/core/installation.cpp
+  src/core/license_command.cpp
   src/core/registration.cpp
   src/core/runtime_license.cpp
   src/core/trust_keyring.cpp
@@ -87,6 +88,11 @@ if(BUILD_TESTING)
   target_compile_features(axlic_a1_cli_scenario PRIVATE cxx_std_20)
   axlic_enable_warnings(axlic_a1_cli_scenario)
 
+  add_executable(axlic_a2_cli_scenario tests/a2_cli_scenario.cpp)
+  target_link_libraries(axlic_a2_cli_scenario PRIVATE axlic_core nlohmann_json::nlohmann_json)
+  target_compile_features(axlic_a2_cli_scenario PRIVATE cxx_std_20)
+  axlic_enable_warnings(axlic_a2_cli_scenario)
+
   FetchContent_Declare(
     Catch2
     URL https://codeload.github.com/catchorg/Catch2/tar.gz/8b08d4d79514f45f7e4ce2a607ac9c94e920d1bb
@@ -101,6 +107,7 @@ if(BUILD_TESTING)
     tests/test_identity_manager.cpp
     tests/test_identity_command.cpp
     tests/test_installation.cpp
+    tests/test_license_command.cpp
     tests/test_license_state.cpp
     tests/test_license_state_repository.cpp
     tests/test_machine_state.cpp
@@ -149,5 +156,11 @@ if(BUILD_TESTING)
     NAME a1_identity_error_process_matrix
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_a1_cli_scenarios.py
       --exe $<TARGET_FILE:axlic_a1_cli_scenario>
+  )
+  add_test(
+    NAME a2_library_plane_cli_contract
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_a2_cli.py
+      --exe $<TARGET_FILE:axlic_a2_cli_scenario>
+      --vectors ${PROJECT_SOURCE_DIR}/reference/vectors/a2/install.json
   )
 endif()
