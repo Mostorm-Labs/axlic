@@ -30,6 +30,8 @@ struct Validity {
   ValidityKind kind{ValidityKind::perpetual};
   std::optional<std::int64_t> not_before;
   std::optional<std::int64_t> not_after;
+
+  bool operator==(const Validity&) const = default;
 };
 
 struct Entitlement {
@@ -39,6 +41,8 @@ struct Entitlement {
   GrantSemantics grant_semantics{GrantSemantics::presence};
   Validity validity;
   std::optional<std::uint64_t> max_u64;
+
+  bool operator==(const Entitlement&) const = default;
 };
 
 struct Credential {

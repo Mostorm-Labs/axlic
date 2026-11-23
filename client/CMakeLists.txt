@@ -50,6 +50,7 @@ add_library(axlic_core STATIC
   src/windows/mutation_lock.cpp
   src/wire/credential.cpp
   src/wire/qcbor_codec.cpp
+  src/windows/license_state_repository.cpp
   "${CMAKE_CURRENT_BINARY_DIR}/generated/embedded_trust_floor.cpp"
 )
 target_compile_features(axlic_core PUBLIC cxx_std_20)
@@ -97,6 +98,8 @@ if(BUILD_TESTING)
     tests/test_device_reference.cpp
     tests/test_identity_manager.cpp
     tests/test_identity_command.cpp
+    tests/test_license_state.cpp
+    tests/test_license_state_repository.cpp
     tests/test_machine_state.cpp
     tests/test_machine_state_repository.cpp
     tests/test_mutation_lock.cpp
