@@ -17,6 +17,11 @@ def main() -> None:
     parser.add_argument("--compiler", type=Path)
     parser.add_argument("--build-dir", type=Path)
     parser.add_argument("--state", type=Path, required=True)
+    parser.add_argument(
+        "--expect-absent",
+        action="store_true",
+        help="production-binary mode: run without the test fixture variable and expect CREDENTIAL_NOT_FOUND",
+    )
     parser.add_argument("--report", type=Path)
     parser.add_argument("--implementation-revision", default="WORKTREE")
     args = parser.parse_args()
@@ -49,7 +54,10 @@ def main() -> None:
         raise AssertionError(f"network/server dependencies detected: {discovered}")
 
     environment = os.environ.copy()
-    environment["AXLIC_A0_FIXTURE_STATE"] = str(args.state)
+    if args.expect_absent:
+        environment.pop("AXLIC_A0_FIXTURE_STATE", None)
+    else:
+        environment["AXLIC_A0_FIXTURE_STATE"] = str(args.state)
     environment["HTTP_PROXY"] = "http://127.0.0.1:9"
     environment["HTTPS_PROXY"] = "http://127.0.0.1:9"
     for name in ("AXLIC_SERVER", "DATABASE_URL", "PGHOST", "PGPORT"):
@@ -64,8 +72,13 @@ def main() -> None:
         shell=False,
     )
     result = json.loads(completed.stdout)
-    if completed.returncode != 0 or result.get("code") != "OK" or result.get("data", {}).get("credential_state") != "valid":
-        raise AssertionError("local status failed without server configuration")
+    if args.expect_absent:
+        expected_code = "CREDENTIAL_NOT_FOUND"
+        if completed.returncode == 0 or result.get("code") != expected_code:
+            raise AssertionError(f"production status must fail closed as {expected_code}: {result}")
+    else:
+        if completed.returncode != 0 or result.get("code") != "OK" or result.get("data", {}).get("credential_state") != "valid":
+            raise AssertionError("local status failed without server configuration")
 
     report = {
         "artifact_id": "T-A0-05-offline-no-server",
