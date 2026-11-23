@@ -3,12 +3,12 @@ authority_id: AXL-V1-P20
 stage: P20
 scope: axlicense
 kind: verification-design
-version: "2"
+version: "3"
 status: current
 source_type: notion
 source_url: https://app.notion.com/p/3d94c57a590c81cb8b62c8391702d839
 migration_class: location-only
-semantic_change: "v2 (2026-11-18, D-105): added §3.5 structural numeric bounds (256 entitlements / 64 KiB artifact / 1024-byte text / depth 8 / defense item bound 8192) backfilled from spec 001 Assumptions; no change to crypto profile or evidence classes"
+semantic_change: "v3 (2026-11-23, D-106): added §17 A2 library-plane evidence classes (EV-A2-01…05 + corroborative walkthrough) registering the verification-first contract for the platform-integration library plane; no change to the frozen crypto profile, structural numeric bounds (§3.5) or the seven A0/A1 evidence families"
 ---
 
 # 20 — P20 Verification Design — AxLicense V1 v0.1
@@ -412,3 +412,52 @@ P20 finds **no remaining upstream authority gap** after D-085/D-086. Important V
 Before P31 authorizes code as complete, downstream authority must be able to freeze the seven blocking evidence families above into its `EXECUTION_CLOSURE_CONTRACT`; implementation does not need those artifacts to already PASS before coding, but it must know exactly what terminal PASS requires.
 
 **Successor routing:** return to central `aegis`. P20 does not directly invoke P30/P31.
+
+## 17. A2 library-plane evidence classes (D-106, 2026-11-23)
+
+This section registers the verification-first contract for the A2 platform-integration library plane (P30 v2 A2 slice; P15 v2 realization addendum). Mapping follows the §1 required-analysis chain (invariant → failure mode → existing independent coverage → residual gap → oracle → exact execution → artifact → blocking/corroborative → Gate criterion). It adds evidence classes; it does not alter the seven frozen families or the crypto profile.
+
+### EV-A2-01 — Credential installation decision matrix (blocking)
+
+- **Invariants:** install = A0 verify → payload `device_id` equals local registration association → (authority_revision, credential_generation) lexicographic high-watermark → atomic commit; same-version reinstall is idempotent and refreshes channel policyVersion; an empty-entitlements revocation credential is a legal install object; the sole version-rollback rejection class is stale-credential.
+- **Failure modes detected:** rollback acceptance (lower revision, or equal revision with lower generation), identity-mismatch acceptance (unregistered / wrong reference / unparsable `device_id`), revocation-credential rejection, partial state on crash mid-commit, verification bypass through the install path.
+- **Existing independent coverage:** EV-01 corpus covers raw verification; EV-A2-01 uniquely covers the decision pipeline **around** verification (match, high-watermark, idempotence, atomicity).
+- **Oracle/fixture:** signed fixtures produced by the independent Python reference signer (`reference/tools/a0_reference.py`); in-memory fake state store + real Windows store; CommitPoint fault-injection callbacks.
+- **Exact execution:** Catch2 unit matrix — happy install; empty-entitlements install; stale on both rollback axes; idempotent same-version reinstall with policyVersion refresh; device mismatch; unregistered rejection; verify-failure passthrough; crash-injection atomicity (no partial state survives).
+- **Gate criterion:** every matrix cell asserts the frozen classification; any misclassification is a Gate-blocking failure.
+
+### EV-A2-02 — Trust keyring merge semantics (blocking)
+
+- **Invariants:** merged trust set = embedded floor ∪ state-root append overlay, same-key_id overlay overrides floor; missing overlay → floor only; malformed overlay ignored (trust-loss direction only); entries must be well-formed {key_id, X‖Y 64 bytes}; empty merged set is legal and fail-closed.
+- **Failure modes detected:** trust injection via malformed overlay, silent trust loss, wrong-form key material acceptance, rotation-replacement misorder.
+- **Existing independent coverage:** none (new trust-metadata surface).
+- **Oracle/fixture:** generated floor artifacts + handwritten overlay files (well-formed / malformed / duplicate key_id).
+- **Exact execution:** Catch2 unit matrix on the merge function over a temp state root.
+- **Gate criterion:** merge result equality per case; malformed-overlay tolerance without exception; empty-set legality.
+
+### EV-A2-03 — Registration dual-state semantics (blocking)
+
+- **Invariants:** self-report value is `identity_value` when unregistered or reference-lost, platform-assigned reference when registered; adoption validates format and persists; terminal-rejection reset drops the reference and falls back to `identity_value`; installed credential survives reset.
+- **Failure modes detected:** wrong self-report state, reference loss, format-invalid adoption, credential loss on reset.
+- **Exact execution:** Catch2 unit matrix on fake + real stores.
+
+### EV-A2-04 — Host CLI contract (blocking)
+
+- **Invariants:** JSON envelope contract, exit-code family (0 success / 2 command-invalid / 3 credential-class failure / 4 internal / 5 retryable), single-line stdout, no secret/path leakage in observable output; `held-version` returns the camelCase triple or no-credential state.
+- **Failure modes detected:** contract drift for the host bridge, output leakage.
+- **Existing independent coverage:** EV-06 covers A0/A1 commands; this class covers the new A2 commands.
+- **Exact execution:** Python subprocess oracle against the scenario executable (injected temp state root), same observe pattern as the existing CLI contract tests.
+- **Gate criterion:** every command's shape/exit-code assertions pass; leak scan clean.
+
+### EV-A2-05 — Zero-regression + offline boundary (blocking)
+
+- **Invariants:** all pre-existing suites stay green; the binary imports no network modules; the packaging-time public-key export tool is not part of the binary.
+- **Exact execution:** full `ctest` including the existing offline-boundary import scan; grep for absence of external repository references in deliverables.
+
+### Corroborative (non-blocking)
+
+- Manual end-to-end walkthrough on one Windows machine: `status` (absent) → `identity` → `device-register` (identity_value self-report) → `adopt` → independent-reference-signed fixture `install --policy-version` → `status`/`entitlement`/`held-version` correct; lower-version fixture rejected stale; packaging-time export tool fails closed without a signing backend and never overwrites the existing floor artifact.
+
+### A2 evidence-family note
+
+EV-A2-01…05 are the blocking completion face for the A2 `EXECUTION_CLOSURE_CONTRACT`; they compose with, and do not replace, the seven frozen families (EV-01/02/04 subsume overlapping A2 concerns at release scope). No artifact is added solely to prove another evidence mechanism (anti-proof-recursion).

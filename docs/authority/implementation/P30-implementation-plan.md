@@ -3,19 +3,21 @@ authority_id: AXL-V1-P30
 stage: P30
 scope: axlicense
 kind: implementation-plan
-version: "1"
+version: "2"
 status: current
 source_type: notion
 source_url: https://app.notion.com/p/3d94c57a590c813ba9e6fb1396334bd7
 migration_class: location-only
-semantic_change: none
+semantic_change: "v2 (2026-11-23, D-106): A2 revised from self-built Node/TS backend + HTTPS transport to the platform-integration library plane (registration association, credential install, trust keyring, host CLI surface); server-plane realization moved out of this repository's scope; A3-A8 server-side content superseded pending a host-bridge integration follow-up; dependency graph updated. v1 (D-091) client-first stack unchanged for the Windows client."
 ---
 
 # 30 — P30 Implementation Plan — AxLicense V1 v0.1
 
 > 🧱
 >
-> **Authority status: Accepted / P30 AxLicense V1 Implementation Planning + D-091 client-first language-stack reconciliation CLOSED — 2026-09-13.** 本页把 trusted P02/P03 + P10–P20 Current Authority 转成 dependency-aware、evidence-gated vertical implementation plan。Current implementation direction is now **C++20/CMake for the Windows `axlic.exe` client, Node.js + TypeScript for the server, PostgreSQL for canonical persistence, with client-first sequencing**. Earlier Rust/Cargo wording on this page is superseded where it conflicts with D-091. 本页不授权 coding，也不冻结任何 P31 EXECUTION_CLOSURE_CONTRACT。
+> **Authority status: Accepted / P30 AxLicense V1 Implementation Planning + D-091 client-first language-stack reconciliation CLOSED — 2026-09-13; A2 direction revised by D-106 — 2026-11-23.** 本页把 trusted P02/P03 + P10–P20 Current Authority 转成 dependency-aware、evidence-gated vertical implementation plan。Current implementation direction is now **C++20/CMake for the Windows `axlic.exe` client, Node.js + TypeScript for the server, PostgreSQL for canonical persistence, with client-first sequencing**. Earlier Rust/Cargo wording on this page is superseded where it conflicts with D-091. 本页不授权 coding，也不冻结任何 P31 EXECUTION_CLOSURE_CONTRACT。
+>
+> **D-106 supersession note (2026-11-23):** the self-built server direction in §2.1 (server bullets) / §2.2 / §2.3 / §2.4 / §3 (`server/` topology) / §7.1 (server CI rows) is superseded as this-repository scope. The licensing platform (server canonical truth, signing backend, channel transport) and the host launcher bridge (channel consumption, RPC orchestration, receipt reporting) are owned outside this repository; axlic is consumed exclusively through the `axlic.exe` CLI contract. Those sections are retained below as historical direction and no longer authorize any in-repo server/transport implementation. The A2 slice in §5 is rewritten accordingly; A3–A8 entries retain their device-side semantics but their server-side content is superseded pending a host-bridge integration follow-up.
 
 ## 1. Stage contract
 
@@ -128,7 +130,7 @@ AXL-V1-A0 C++ Local Signed-Credential Gate
         ↓
 AXL-V1-A1 C++ Windows Identity + Protected Local State
         ↓
-AXL-V1-A2 Node/TS Backend Foundation + RegisterDeviceIdentity
+AXL-V1-A2 Platform Licensing Library Plane (D-106)
         ↓
 AXL-V1-A3 Online Grant Activation + Credential Install
         ├──────────────┬──────────────┐
@@ -144,7 +146,7 @@ Refresh/Revision   Device Assertion Offline Activation
      Windows Hardening + Release Qualification
 ```
 
-**Client-first rule:** A0 与 A1 不要求真实 AxLicense Server即可 Gate-close；A2 才引入 Node.js/TypeScript + PostgreSQL。A4/A5/A6 在 A3 之后可以并行开发，但 P31 packages必须分别冻结 scope，不允许在共享 module/contract 上无协调并发改写同一 authority surface。
+**Client-first rule:** A0 与 A1 不要求真实 licensing platform即可 Gate-close；A2 (D-106 form) 也不引入任何网络/服务端代码——它是纯本地库平面，宿主桥负责通道侧。A4/A5/A6 在 A3 之后可以并行开发，但 P31 packages必须分别冻结 scope，不允许在共享 module/contract 上无协调并发改写同一 authority surface。
 
 ## 5. Vertical slices
 
@@ -185,22 +187,26 @@ Does not include canonical Device registration or PostgreSQL.
 
 **Evidence maturation:** EV-03 real-provider behavior partial；EV-04 local durability/serialization partial；EV-06 identity CLI contract partial.
 
-### AXL-V1-A2 — Node/TypeScript Backend Foundation + RegisterDeviceIdentity
+### AXL-V1-A2 — Platform Licensing Library Plane (D-106 Current Authority)
 
-**Outcome:** 在已经稳定的 C++ identity/local-state client 基础上，引入最小 Node.js + TypeScript server + PostgreSQL，使 `axlic device-register` 能创建/找回同一个 canonical Device，并在 response loss/retry/concurrency 下保持幂等。
+**Outcome:** 在已经稳定的 C++ identity/local-state client 基础上，把 axlic 补全为**纯本地库平面**：持久化平台分配的设备引用、以信任密钥环验签并原子安装凭证（含防回滚高水位与通道侧 policyVersion 元数据）、向宿主 launcher 桥暴露只读持有版本查询面。axlic 自身保持零网络代码；通道传输、RPC 编排与回执上报归宿主桥，许可平台（台账/签发/签名后端）在本仓范围之外。
 
 Includes:
 
-- Node.js/TypeScript server bootstrap and strict build/test configuration；
-- PostgreSQL migrations/canonical transaction baseline；
-- TransportApi / CallerAuth bootstrap / OperationCore；
-- DeviceRegistry + IdentityAssurancePolicy + RegisterDeviceIdentity；
-- operation idempotency ledger；
-- C++ HTTPS transport adapter + `device-register`；
-- local opaque `device_id` association commit；
-- response-loss / same-identity / concurrent-registration scenarios。
+- **平台设备引用域**：`axldev_` + 32 位小写 hex 的解析/校验专用类型，用于注册引用持久化与凭证载荷 `device_id` 的规范化比对；
+- **注册关联平面**：持久化平台注册响应返回的 opaque 设备引用（非权威便利引用，P16 FR19-ID-02 语义）；对外提供双态自报值（未注册/引用丢失自报 identity_value，已注册自报平台分配引用）；终态拒绝（自报值采纳失败 / 本地引用查无主体）时丢弃本地引用回退 identity_value 的处置入口；
+- **凭证安装平面**：安装 = 复用 A0 验签 → 载荷 `device_id` 与本地注册引用比对 → 按 (authority_revision, credential_generation) 字典序高水位防回滚（同版本幂等重装放行）→ 原子提交；唯一版本回退拒绝分类＝凭证陈旧（`CREDENTIAL_STALE`），线上 errorCode 字符串由宿主映射；空 entitlements 清权凭证为合法安装对象；
+- **通道侧元数据持久化**：policyVersion（对账上报轴）随安装本地持久化，不进 CBOR 载荷（P17 冻结面）；
+- **信任密钥环**：内嵌生产密钥环（打包期从签名后端导出公钥构件、构建期编译进 exe；初始为空、fail-closed）+ 状态根 append 覆盖文件（同 key_id 覆盖内嵌项）；条目形态 {key_id, X‖Y 64 字节}；完整轮换/分发机制为后续专项；
+- **持有版本查询面**：供宿主桥读取 (authorityRevision, credentialGeneration, policyVersion) 三元组或「无凭证」态，用于应答版本探测与发起对账；
+- **并列本地状态载体**：注册引用、已装凭证/高水位与通道侧元数据落于状态根下并列状态文件（DPAPI 信封 + 原子替换 + 既有互斥锁语义），machine-state 身份文件零改动；
+- **CLI 宿主消费面**：`status` / `entitlement` 从硬编码 absent 改为读取已安装凭证；新增 `device-register`（双态查询/采纳/重置）、`install`（验签+安装）、`held-version`（持有版本三元组查询），命名对齐 P17 CLI family。
 
-**Evidence maturation:** EV-02 registration family materializable；EV-03 client↔server identity integration；EV-04 local association commit recovery.
+Does not include: 网络代码、通道协议、RPC 编排、回执上报（宿主桥）；许可平台台账/签发/签名后端（仓外）；完整密钥轮换/分发机制。
+
+**Evidence maturation:** EV-A2-01…05（P20 v3 新证据类，blocking）；EV-02 设备本地安装/关联子集；EV-04 local association/anti-rollback/held-version 面.
+
+> **A3–A8 supersession note (D-106):** 下列 A3–A8 条目保留其设备侧语义（activation/refresh/assertion/offline/recovery/hardening 的本地半边），但其 server-side content（Node/TS 服务端、HTTPS transport adapter、PostgreSQL canonical store、fixture signer port 等）已随 D-106 撤销为本仓范围外，待宿主桥集成专项重新规划；在新的专项权威落地前，这些条目不授权任何 in-repo server/transport 实现。
 
 ### AXL-V1-A3 — Online Grant Activation + Credential Install
 
@@ -296,7 +302,7 @@ Includes:
 | Evidence | First useful materialization | Release-complete point |
 | --- | --- | --- |
 | EV-01 Canonical/Crypto | A0 | A6/A8 release rerun |
-| EV-02 Domain Mutation | A2 | A7 + A8 rerun |
+| EV-02 Domain Mutation | A2 (device-local install/association subset per D-106) | A7 + A8 rerun |
 | EV-03 Windows Identity | A1 | A8 real TPM qualification |
 | EV-04 Durability/Anti-Rollback | A1/A3 | A8 kill-point/concurrency |
 | EV-05 Assertion/Scope | A5 | A7/A8 |
