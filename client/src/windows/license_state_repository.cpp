@@ -84,6 +84,7 @@ class FileHandle {
 
 bool valid_installed_credential(const core::InstalledCredential& credential) {
   return !credential.credential_id.empty() && !credential.license_grant_id.empty() &&
+         core::DeviceReference::parse(credential.device_id).has_value() &&
          credential.authority_revision != 0U && credential.credential_generation != 0U &&
          credential.policy_version != 0U && credential.entitlements.size() <= 256U;
 }
@@ -196,6 +197,7 @@ core::StateStoreOutcome LicenseStateCodec::encode(const core::LicenseState& stat
         {"credential_id", credential.credential_id},
         {"license_grant_id", credential.license_grant_id},
         {"binding_id", credential.binding_id},
+        {"device_id", credential.device_id},
         {"authority_revision", credential.authority_revision},
         {"credential_generation", credential.credential_generation},
         {"issued_at", credential.issued_at},
@@ -277,6 +279,7 @@ core::LicenseStateRead LicenseStateCodec::decode(const std::string_view carrier)
           .credential_id = source.at("credential_id").get<std::string>(),
           .license_grant_id = source.at("license_grant_id").get<std::string>(),
           .binding_id = source.at("binding_id").get<std::string>(),
+          .device_id = source.at("device_id").get<std::string>(),
           .authority_revision = source.at("authority_revision").get<std::uint64_t>(),
           .credential_generation = source.at("credential_generation").get<std::uint64_t>(),
           .issued_at = source.at("issued_at").get<std::int64_t>(),

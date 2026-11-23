@@ -16,6 +16,7 @@ axlic::core::InstalledCredential credential(const std::uint64_t revision, const 
       .credential_id = "cred-1",
       .license_grant_id = "grant-1",
       .binding_id = "binding-1",
+      .device_id = std::string("axldev_") + std::string(32, '7'),
       .authority_revision = revision,
       .credential_generation = generation,
       .issued_at = 100,

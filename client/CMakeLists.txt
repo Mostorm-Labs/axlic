@@ -42,6 +42,8 @@ add_library(axlic_core STATIC
   src/core/device_reference.cpp
   src/core/identity.cpp
   src/core/identity_command.cpp
+  src/core/installation.cpp
+  src/core/registration.cpp
   src/core/runtime_license.cpp
   src/core/trust_keyring.cpp
   src/windows/cng_identity_provider.cpp
@@ -98,11 +100,13 @@ if(BUILD_TESTING)
     tests/test_device_reference.cpp
     tests/test_identity_manager.cpp
     tests/test_identity_command.cpp
+    tests/test_installation.cpp
     tests/test_license_state.cpp
     tests/test_license_state_repository.cpp
     tests/test_machine_state.cpp
     tests/test_machine_state_repository.cpp
     tests/test_mutation_lock.cpp
+    tests/test_registration.cpp
     tests/test_runtime_license.cpp
     tests/test_trust_keyring.cpp
   )

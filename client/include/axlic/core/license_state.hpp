@@ -29,6 +29,7 @@ struct InstalledCredential {
   std::string credential_id;
   std::string license_grant_id;
   std::string binding_id;
+  std::string device_id;
   std::uint64_t authority_revision{};
   std::uint64_t credential_generation{};
   std::int64_t issued_at{};
