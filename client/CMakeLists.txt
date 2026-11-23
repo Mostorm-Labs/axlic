@@ -24,6 +24,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(qcbor)
 
 add_library(axlic_core STATIC
+  src/core/device_reference.cpp
   src/core/identity.cpp
   src/core/identity_command.cpp
   src/core/runtime_license.cpp
@@ -76,6 +77,7 @@ if(BUILD_TESTING)
   add_executable(axlic_unit_tests
     tests/test_credential.cpp
     tests/test_cng_status.cpp
+    tests/test_device_reference.cpp
     tests/test_identity_manager.cpp
     tests/test_identity_command.cpp
     tests/test_machine_state.cpp
