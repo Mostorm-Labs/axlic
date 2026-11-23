@@ -1,9 +1,11 @@
 # AXL-V1-A2 P31 Task Package — Platform Licensing Library Plane
 
-status: APPROVED_FOR_P32_HANDOFF
+status: P32_COMPLETE_GATE_D107_PASS_WITH_FINDINGS
 stage_owner: aegis-implementation
 process_profile: Full
 created_at: 2026-11-23
+result_revision: 466175d
+gate_decision: D-107 (PASS_WITH_FINDINGS, 2026-11-23)
 
 ## Repository identity
 

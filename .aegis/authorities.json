@@ -17,6 +17,7 @@
     {"id":"AXL-V1-P20","scope":"axlicense","kind":"verification","version":"3","status":"Current","ref":"docs/authority/verification/P20-verification-design.md","depends_on":["AXL-V1-P18"]},
     {"id":"AXL-V1-P30","scope":"axlicense","kind":"implementation-plan","version":"2","status":"Current","ref":"docs/authority/implementation/P30-implementation-plan.md","depends_on":["AXL-V1-P20"]},
     {"id":"AXL-V1-A0-P31","scope":"axlicense/A0","kind":"implementation-package","version":"1","status":"Historical","ref":".aegis/packages/AXL-V1-A0-P31.md","depends_on":["AXL-V1-P30"]},
-    {"id":"AXL-V1-A1-P31","scope":"axlicense/A1","kind":"implementation-package","version":"1","status":"Historical","ref":".aegis/packages/AXL-V1-A1-P31.md","depends_on":["AXL-V1-P30","AXL-V1-A0-P31"]}
+    {"id":"AXL-V1-A1-P31","scope":"axlicense/A1","kind":"implementation-package","version":"1","status":"Historical","ref":".aegis/packages/AXL-V1-A1-P31.md","depends_on":["AXL-V1-P30","AXL-V1-A0-P31"]},
+    {"id":"AXL-V1-A2-P31","scope":"axlicense/A2","kind":"implementation-package","version":"1","status":"Historical","ref":".aegis/packages/AXL-V1-A2-P31.md","depends_on":["AXL-V1-P30","AXL-V1-A1-P31"]}
   ]
 }
