@@ -28,6 +28,9 @@ enum class InstallCode {
 struct InstallResult {
   InstallCode code{InstallCode::internal_error};
   bool retryable{};
+  // Echo of the committed credential on ok/ok_idempotent so callers render
+  // the response without re-reading state after the mutation lock released.
+  std::optional<InstalledCredential> installed;
 };
 
 struct InstallRequest {

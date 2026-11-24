@@ -1,10 +1,12 @@
 #include "axlic/core/license_command.hpp"
 
+#include "axlic/core/command_envelope.hpp"
 #include "axlic/core/runtime_license.hpp"
 
 #include <nlohmann/json.hpp>
 
 #include <optional>
+#include <string_view>
 #include <utility>
 
 namespace axlic::core {
@@ -13,11 +15,6 @@ namespace {
 using Json = nlohmann::json;
 
 constexpr std::string_view kCorrelationRef = "a2-local";
-constexpr int kExitOk = 0;
-constexpr int kExitCommandInvalid = 2;
-constexpr int kExitCredentialFailure = 3;
-constexpr int kExitInternal = 4;
-constexpr int kExitRetryable = 5;
 
 Json command_result(
     const bool ok,
@@ -25,16 +22,7 @@ Json command_result(
     const std::string_view category,
     const bool retryable = false,
     std::optional<Json> data = std::nullopt) {
-  Json result = {{"contract_version", "1.0"},
-                 {"ok", ok},
-                 {"code", code},
-                 {"category", category},
-                 {"retryable", retryable},
-                 {"correlation_ref", kCorrelationRef}};
-  if (data) {
-    result["data"] = std::move(*data);
-  }
-  return result;
+  return axlic::core::command_result(kCorrelationRef, ok, code, category, retryable, std::move(data));
 }
 
 RenderedCommand emit(const Json& result, const int exit_code) {
@@ -217,18 +205,15 @@ RenderedCommand render_install(
   if (result.code != InstallCode::ok && result.code != InstallCode::ok_idempotent) {
     return install_failure(result.code);
   }
-  RenderedCommand error{};
-  const auto state = read_license_state(license_state, error);
-  if (!state.has_value()) {
-    return error;
-  }
+  // The echo comes from the InstallResult committed under the lock; re-reading
+  // state here would race with a concurrent install and could misclassify an
+  // already-committed install as a local-state failure.
   Json data{{"result", install_code_name(result.code)}};
-  if (state->has_value() && (*state)->credential) {
-    const auto& credential = *(*state)->credential;
-    data["credential_id"] = credential.credential_id;
-    data["authority_revision"] = credential.authority_revision;
-    data["credential_generation"] = credential.credential_generation;
-    data["policy_version"] = credential.policy_version;
+  if (result.installed) {
+    data["credential_id"] = result.installed->credential_id;
+    data["authority_revision"] = result.installed->authority_revision;
+    data["credential_generation"] = result.installed->credential_generation;
+    data["policy_version"] = result.installed->policy_version;
   }
   return emit(command_result(true, "OK", "none", false, std::move(data)), kExitOk);
 }

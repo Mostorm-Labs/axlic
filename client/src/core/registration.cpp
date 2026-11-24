@@ -1,31 +1,11 @@
 #include "axlic/core/registration.hpp"
 
+#include "axlic/core/mutation_lock_guard.hpp"
+
 #include <utility>
 
 namespace axlic::core {
 namespace {
-
-class LockGuard {
- public:
-  LockGuard(IMutationLock& lock, bool& retryable) : lock_(lock), retryable_(retryable) {
-    const auto outcome = lock.acquire();
-    acquired_ = outcome == LockOutcome::acquired;
-    retryable = outcome == LockOutcome::busy;
-  }
-  ~LockGuard() {
-    if (acquired_) {
-      lock_.release();
-    }
-  }
-  LockGuard(const LockGuard&) = delete;
-  LockGuard& operator=(const LockGuard&) = delete;
-  [[nodiscard]] bool acquired() const noexcept { return acquired_; }
-
- private:
-  IMutationLock& lock_;
-  bool& retryable_;
-  bool acquired_{};
-};
 
 RegistrationCode state_code(const StateStoreOutcome outcome) {
   switch (outcome) {
@@ -45,40 +25,34 @@ RegistrationCode state_code(const StateStoreOutcome outcome) {
   return RegistrationCode::internal_error;
 }
 
-// Reads current state under the already-held lock; an absent file is an empty
-// state, not an error.
-RegistrationResult read_state(ILicenseStateStore& state) {
-  const auto read = state.read();
-  if (read.outcome == StateStoreOutcome::absent) {
-    return {RegistrationCode::ok, false};
-  }
-  if (read.outcome != StateStoreOutcome::ok) {
-    return {state_code(read.outcome), false};
-  }
-  return {RegistrationCode::ok, false};
-}
-
 RegistrationResult mutate_registration(
     ILicenseStateStore& state,
     IMutationLock& lock,
     const std::optional<DeviceReference>& replacement) {
   RegistrationResult result{RegistrationCode::internal_error, false};
-  const LockGuard guard(lock, result.retryable);
+  const MutationLockGuard guard(lock, result.retryable);
   if (!guard.acquired()) {
-    return result.retryable ? RegistrationResult{RegistrationCode::local_state_busy, true}
-                            : RegistrationResult{RegistrationCode::internal_error, false};
+    if (result.retryable) {
+      return {RegistrationCode::local_state_busy, true};
+    }
+    if (guard.denied()) {
+      return {RegistrationCode::local_write_privilege_required, false};
+    }
+    return {RegistrationCode::internal_error, false};
   }
-  const auto current = read_state(state);
-  if (current.code != RegistrationCode::ok) {
-    return {current.code, false};
+  // Single read both validates and loads the state; an absent file is an empty
+  // state, and any read failure must abort instead of committing a default
+  // LicenseState that would drop the installed credential.
+  LicenseState next;
+  const auto read = state.read();
+  if (read.outcome == StateStoreOutcome::ok && read.state) {
+    next = *read.state;
+  } else if (read.outcome != StateStoreOutcome::ok && read.outcome != StateStoreOutcome::absent) {
+    return {state_code(read.outcome), false};
   }
   const auto prepared = state.prepare_for_mutation();
   if (prepared != StateStoreOutcome::ok) {
     return {state_code(prepared), false};
-  }
-  LicenseState next;
-  if (const auto read = state.read(); read.outcome == StateStoreOutcome::ok && read.state) {
-    next = *read.state;
   }
   if (replacement) {
     next.registration = RegistrationAssociation{.device_id = *replacement};

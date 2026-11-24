@@ -1,34 +1,13 @@
 #include "axlic/core/installation.hpp"
 
 #include "axlic/core/device_reference.hpp"
+#include "axlic/core/mutation_lock_guard.hpp"
 #include "axlic/core/registration.hpp"
 
 #include <utility>
 
 namespace axlic::core {
 namespace {
-
-class LockGuard {
- public:
-  LockGuard(IMutationLock& lock, bool& retryable) : lock_(lock), retryable_(retryable) {
-    const auto outcome = lock.acquire();
-    acquired_ = outcome == LockOutcome::acquired;
-    retryable = outcome == LockOutcome::busy;
-  }
-  ~LockGuard() {
-    if (acquired_) {
-      lock_.release();
-    }
-  }
-  LockGuard(const LockGuard&) = delete;
-  LockGuard& operator=(const LockGuard&) = delete;
-  [[nodiscard]] bool acquired() const noexcept { return acquired_; }
-
- private:
-  IMutationLock& lock_;
-  bool& retryable_;
-  bool acquired_{};
-};
 
 InstallCode state_code(const StateStoreOutcome outcome) {
   switch (outcome) {
@@ -69,10 +48,15 @@ InstallResult install_credential(
     const std::span<const wire::TrustedPublicKey> trusted_keys,
     const InstallRequest& request) {
   InstallResult result{InstallCode::internal_error, false};
-  const LockGuard guard(lock, result.retryable);
+  const MutationLockGuard guard(lock, result.retryable);
   if (!guard.acquired()) {
-    return result.retryable ? InstallResult{InstallCode::local_state_busy, true}
-                            : InstallResult{InstallCode::internal_error, false};
+    if (result.retryable) {
+      return {InstallCode::local_state_busy, true};
+    }
+    if (guard.denied()) {
+      return {InstallCode::local_write_privilege_required, false};
+    }
+    return {InstallCode::internal_error, false};
   }
   LicenseState current;
   const auto read = state.read();
@@ -123,7 +107,7 @@ InstallResult install_credential(
   if (written != StateStoreOutcome::ok) {
     return {state_code(written), false};
   }
-  return {verdict, false};
+  return {verdict, false, next.credential};
 }
 
 std::optional<HeldVersion> held_version(const LicenseState& state) {
