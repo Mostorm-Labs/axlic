@@ -1,3 +1,5 @@
+#include "axlic/core/cli_numbers.hpp"
+#include "axlic/core/command_envelope.hpp"
 #include "axlic/core/identity.hpp"
 #include "axlic/core/identity_command.hpp"
 #include "axlic/core/installation.hpp"
@@ -21,9 +23,7 @@
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
-#include <iterator>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -32,24 +32,6 @@
 
 namespace {
 using Json = nlohmann::json;
-
-Json command_result(
-    const bool ok,
-    const std::string_view code,
-    const std::string_view category,
-    const bool retryable = false,
-    std::optional<Json> data = std::nullopt) {
-  Json result = {{"contract_version", "1.0"},
-                 {"ok", ok},
-                 {"code", code},
-                 {"category", category},
-                 {"retryable", retryable},
-                 {"correlation_ref", "a1-local"}};
-  if (data) {
-    result["data"] = std::move(*data);
-  }
-  return result;
-}
 
 int emit(const Json& result, const int exit_code) {
   std::cout << result.dump() << '\n';
@@ -62,19 +44,15 @@ int emit(const axlic::core::RenderedCommand& result) {
 }
 
 // Shared wiring for every license-plane command: protected state root,
-// machine identity state, license state and the machine-wide mutation lock.
+// license state and the machine-wide mutation lock. The machine-identity
+// store and trust keyring are assembled by the commands that need them.
 struct LicensePlane {
   axlic::windows::DpapiProtector protector{};
-  axlic::windows::MachineStateCodec machine_codec{protector};
   axlic::windows::LicenseStateCodec license_codec{protector};
   axlic::windows::WindowsStateRootSecurity security{};
   std::filesystem::path root{};
-  std::optional<axlic::windows::WindowsMachineStateStore> machine_state{};
   std::optional<axlic::windows::WindowsLicenseStateStore> license_state{};
   axlic::windows::WindowsMutationLock lock{};
-  std::vector<axlic::wire::TrustedPublicKey> trusted_keys{};
-
-  bool valid{false};
 };
 
 bool open_license_plane(LicensePlane& plane) {
@@ -82,18 +60,14 @@ bool open_license_plane(LicensePlane& plane) {
   if (plane.root.empty()) {
     return false;
   }
-  plane.machine_state.emplace(plane.root, plane.machine_codec, plane.security);
   plane.license_state.emplace(plane.root, plane.license_codec, plane.security);
-  const auto keyring = axlic::core::load_trust_keyring(plane.root);
-  plane.trusted_keys = std::move(keyring.keys);
-  plane.valid = true;
   return true;
 }
 
 int status_command() {
   LicensePlane plane;
   if (!open_license_plane(plane)) {
-    return emit(command_result(false, "INTERNAL_ERROR", "internal"), 4);
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
   }
   return emit(axlic::core::render_status(*plane.license_state));
 }
@@ -101,7 +75,7 @@ int status_command() {
 int entitlement_command(const std::string_view entitlement_id) {
   LicensePlane plane;
   if (!open_license_plane(plane)) {
-    return emit(command_result(false, "INTERNAL_ERROR", "internal"), 4);
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
   }
   const auto now = std::chrono::duration_cast<std::chrono::seconds>(
                        std::chrono::system_clock::now().time_since_epoch())
@@ -112,10 +86,12 @@ int entitlement_command(const std::string_view entitlement_id) {
 int device_register_command(const std::vector<std::string_view>& args) {
   LicensePlane plane;
   if (!open_license_plane(plane)) {
-    return emit(command_result(false, "INTERNAL_ERROR", "internal"), 4);
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
   }
+  axlic::windows::MachineStateCodec machine_codec{plane.protector};
+  axlic::windows::WindowsMachineStateStore machine_state(plane.root, machine_codec, plane.security);
   if (args.empty()) {
-    return emit(axlic::core::render_device_register(*plane.machine_state, *plane.license_state));
+    return emit(axlic::core::render_device_register(machine_state, *plane.license_state));
   }
   if (args[0] == "adopt" && args.size() == 2U) {
     return emit(axlic::core::render_device_register_adopt(*plane.license_state, plane.lock, args[1]));
@@ -123,56 +99,29 @@ int device_register_command(const std::vector<std::string_view>& args) {
   if (args[0] == "reset" && args.size() == 1U) {
     return emit(axlic::core::render_device_register_reset(*plane.license_state, plane.lock));
   }
-  return emit(command_result(false, "COMMAND_INVALID", "command"), 2);
-}
-
-std::optional<std::vector<std::uint8_t>> read_artifact_file(const std::string& path) {
-  constexpr std::size_t kMaximumArtifactSize = 64U * 1024U;
-  std::ifstream stream(path, std::ios::binary);
-  if (!stream) {
-    return std::nullopt;
-  }
-  std::vector<std::uint8_t> bytes{std::istreambuf_iterator<char>(stream),
-                                  std::istreambuf_iterator<char>()};
-  if (bytes.empty() || bytes.size() > kMaximumArtifactSize) {
-    return std::nullopt;
-  }
-  return bytes;
-}
-
-std::optional<std::uint64_t> parse_policy_version(const std::string_view text) {
-  if (text.empty() || text.size() > 20U) {
-    return std::nullopt;
-  }
-  std::uint64_t value{};
-  for (const char character : text) {
-    if (character < '0' || character > '9') {
-      return std::nullopt;
-    }
-    value = value * 10U + static_cast<std::uint64_t>(character - '0');
-  }
-  return value == 0U ? std::nullopt : std::optional<std::uint64_t>(value);
+  return emit(axlic::core::command_result("a1-local", false, "COMMAND_INVALID", "command"), axlic::core::kExitCommandInvalid);
 }
 
 int install_command(const std::string& path, const std::uint64_t policy_version) {
-  const auto artifact = read_artifact_file(path);
+  const auto artifact = axlic::core::read_artifact_file(path);
   if (!artifact) {
-    return emit(command_result(false, "CREDENTIAL_INVALID", "credential", false,
+    return emit(axlic::core::command_result("a1-local", false, "CREDENTIAL_INVALID", "credential", false,
                                Json{{"reason", "artifact_unreadable_or_oversize"}}),
-                3);
+                axlic::core::kExitCredentialFailure);
   }
   LicensePlane plane;
   if (!open_license_plane(plane)) {
-    return emit(command_result(false, "INTERNAL_ERROR", "internal"), 4);
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
   }
+  const auto keyring = axlic::core::load_trust_keyring(plane.root);
   const axlic::core::InstallRequest request{.artifact = *artifact, .policy_version = policy_version};
-  return emit(axlic::core::render_install(*plane.license_state, plane.lock, plane.trusted_keys, request));
+  return emit(axlic::core::render_install(*plane.license_state, plane.lock, keyring.keys, request));
 }
 
 int held_version_command() {
   LicensePlane plane;
   if (!open_license_plane(plane)) {
-    return emit(command_result(false, "INTERNAL_ERROR", "internal"), 4);
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
   }
   return emit(axlic::core::render_held_version(*plane.license_state));
 }
@@ -199,7 +148,7 @@ int identity_command() {
   axlic::windows::WindowsStateRootSecurity security;
   const auto root = axlic::windows::program_data_state_root();
   if (root.empty()) {
-    return emit(command_result(false, "INTERNAL_ERROR", "internal"), 4);
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
   }
   axlic::windows::WindowsMachineStateStore state(root, codec, security);
   axlic::windows::WindowsMutationLock lock;
@@ -220,7 +169,7 @@ int identity_command() {
 int main(const int argc, const char* const argv[]) {
   try {
     if (argc < 2) {
-      return emit(command_result(false, "COMMAND_INVALID", "command"), 2);
+      return emit(axlic::core::command_result("a1-local", false, "COMMAND_INVALID", "command"), axlic::core::kExitCommandInvalid);
     }
     const std::string_view command(argv[1]);
     if (command == "status" && argc == 2) {
@@ -232,22 +181,22 @@ int main(const int argc, const char* const argv[]) {
     if (command == "identity" && argc == 2) {
       return identity_command();
     }
-    if (command == "device-register" && argc >= 2) {
+    if (command == "device-register") {
       const std::vector<std::string_view> args(argv + 2, argv + argc);
       return device_register_command(args);
     }
     if (command == "install" && argc == 5 && std::string_view(argv[3]) == "--policy-version") {
-      const auto policy_version = parse_policy_version(argv[4]);
+      const auto policy_version = axlic::core::parse_u64_strict(argv[4], false);
       if (!policy_version) {
-        return emit(command_result(false, "COMMAND_INVALID", "command"), 2);
+        return emit(axlic::core::command_result("a1-local", false, "COMMAND_INVALID", "command"), axlic::core::kExitCommandInvalid);
       }
       return install_command(argv[2], *policy_version);
     }
     if (command == "held-version" && argc == 2) {
       return held_version_command();
     }
-    return emit(command_result(false, "COMMAND_INVALID", "command"), 2);
+    return emit(axlic::core::command_result("a1-local", false, "COMMAND_INVALID", "command"), axlic::core::kExitCommandInvalid);
   } catch (...) {
-    return emit(command_result(false, "INTERNAL_ERROR", "internal"), 4);
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
   }
 }

@@ -12,6 +12,8 @@
 //   install <artifact_path> --policy-version <n>
 //   held-version
 
+#include "axlic/core/cli_numbers.hpp"
+#include "axlic/core/command_envelope.hpp"
 #include "axlic/core/installation.hpp"
 #include "axlic/core/license_command.hpp"
 #include "axlic/core/license_state.hpp"
@@ -20,6 +22,8 @@
 #include "axlic/windows/machine_state.hpp"
 #include "axlic/windows/machine_state_repository.hpp"
 #include "axlic/windows/mutation_lock.hpp"
+
+#include <nlohmann/json.hpp>
 
 #include <cstdint>
 #include <filesystem>
@@ -33,28 +37,12 @@
 
 namespace {
 
-constexpr std::size_t kMaximumArtifactSize = 64U * 1024U;
-
 std::optional<std::string> read_text_file(const std::filesystem::path& path) {
   std::ifstream stream(path, std::ios::binary);
   if (!stream) {
     return std::nullopt;
   }
   return std::string{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
-}
-
-std::optional<std::uint64_t> parse_u64(const std::string_view text) {
-  if (text.empty() || text.size() > 20U) {
-    return std::nullopt;
-  }
-  std::uint64_t value{};
-  for (const char character : text) {
-    if (character < '0' || character > '9') {
-      return std::nullopt;
-    }
-    value = value * 10U + static_cast<std::uint64_t>(character - '0');
-  }
-  return value;
 }
 
 // Test-root security: creates the directory but does not apply the
@@ -95,9 +83,23 @@ bool seed_identity(const std::filesystem::path& root) {
 }
 
 int invalid_command() {
-  std::cout << "{\"category\":\"command\",\"code\":\"COMMAND_INVALID\",\"contract_version\":\"1.0\","
-               "\"correlation_ref\":\"a2-scenario\",\"ok\":false,\"retryable\":false}\n";
-  return 2;
+  std::cout << axlic::core::command_result("a2-scenario", false, "COMMAND_INVALID", "command").dump() << '\n';
+  return axlic::core::kExitCommandInvalid;
+}
+
+// Unreadable/empty/oversize artifacts classify as credential failures on both
+// the production CLI and this scenario surface (exit 3, credential family).
+int invalid_artifact() {
+  std::cout << axlic::core::command_result(
+                   "a2-scenario",
+                   false,
+                   "CREDENTIAL_INVALID",
+                   "credential",
+                   false,
+                   nlohmann::json{{"reason", "artifact_unreadable_or_oversize"}})
+                   .dump()
+            << '\n';
+  return axlic::core::kExitCredentialFailure;
 }
 
 }  // namespace
@@ -131,13 +133,12 @@ int main(const int argc, const char* const argv[]) {
 
   if (command == "seed-identity") {
     if (!seed_identity(root)) {
-      std::cout << "{\"category\":\"internal\",\"code\":\"INTERNAL_ERROR\",\"contract_version\":\"1.0\","
-                   "\"correlation_ref\":\"a2-scenario\",\"ok\":false,\"retryable\":false}\n";
-      return 4;
+      std::cout << axlic::core::command_result("a2-scenario", false, "INTERNAL_ERROR", "internal").dump()
+                << '\n';
+      return axlic::core::kExitInternal;
     }
-    std::cout << "{\"category\":\"none\",\"code\":\"OK\",\"contract_version\":\"1.0\","
-                 "\"correlation_ref\":\"a2-scenario\",\"ok\":true,\"retryable\":false}\n";
-    return 0;
+    std::cout << axlic::core::command_result("a2-scenario", true, "OK", "none").dump() << '\n';
+    return axlic::core::kExitOk;
   }
   if (command == "status" && args.empty()) {
     const auto rendered = axlic::core::render_status(license_state);
@@ -145,7 +146,7 @@ int main(const int argc, const char* const argv[]) {
     return rendered.exit_code;
   }
   if (command == "entitlement" && args.size() == 2U) {
-    const auto now = parse_u64(args[1]);
+    const auto now = axlic::core::parse_u64_strict(args[1], true);
     if (!now) {
       return invalid_command();
     }
@@ -170,17 +171,18 @@ int main(const int argc, const char* const argv[]) {
     return rendered.exit_code;
   }
   if (command == "install" && args.size() == 3U && args[1] == "--policy-version") {
-    const auto policy_version = parse_u64(args[2]);
-    const auto artifact_text = read_text_file(std::filesystem::path(args[0]));
-    if (!policy_version || !artifact_text || artifact_text->empty() ||
-        artifact_text->size() > kMaximumArtifactSize) {
+    const auto policy_version = axlic::core::parse_u64_strict(args[2], false);
+    if (!policy_version) {
       return invalid_command();
     }
-    const std::vector<std::uint8_t> artifact(artifact_text->begin(), artifact_text->end());
+    const auto artifact = axlic::core::read_artifact_file(std::string(args[0]));
+    if (!artifact) {
+      return invalid_artifact();
+    }
     const auto keyring = floor_document.empty()
                              ? axlic::core::load_trust_keyring(root)
                              : axlic::core::load_trust_keyring_from(floor_document, root);
-    const axlic::core::InstallRequest request{.artifact = artifact, .policy_version = *policy_version};
+    const axlic::core::InstallRequest request{.artifact = *artifact, .policy_version = *policy_version};
     const auto rendered =
         axlic::core::render_install(license_state, lock, keyring.keys, request);
     std::cout << rendered.json << '\n';
