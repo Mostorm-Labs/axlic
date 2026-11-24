@@ -113,6 +113,9 @@ jobs:
           if (Compare-Object (Get-Content evidence/trust-floor-before.json) (Get-Content client/keyring/trust-floor.json)) {
             throw 'export tool overwrote the existing artifact on failure'
           }
+          # The tool's expected fail-closed exit is 1; pwsh appends `exit $LASTEXITCODE`,
+          # so terminate the step explicitly once both fail-closed assertions pass.
+          exit 0
 
       - name: Record build and toolchain identity
         run: >-
