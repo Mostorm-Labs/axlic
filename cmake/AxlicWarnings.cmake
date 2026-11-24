@@ -1,6 +1,6 @@
 function(axlic_enable_warnings target)
   if(MSVC)
-    target_compile_options(${target} PRIVATE /permissive- /W4 /WX)
+    target_compile_options(${target} PRIVATE /permissive- /W4 /WX /we4061 /we4062)
   else()
     target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Werror)
   endif()

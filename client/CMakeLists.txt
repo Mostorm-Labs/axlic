@@ -32,6 +32,12 @@ if(trust_floor_json_error OR NOT AXLIC_TRUST_FLOOR_FORMAT STREQUAL "axlic-trust-
   message(FATAL_ERROR "client/keyring/trust-floor.json is not a valid axlic-trust-floor document: ${trust_floor_json_error}")
 endif()
 set(TRUST_FLOOR_JSON "${AXLIC_TRUST_FLOOR_DOCUMENT}")
+# Defense in depth: a key id containing the raw-string terminator would break
+# the generated source at compile time with a hard-to-diagnose error.
+string(FIND "${AXLIC_TRUST_FLOOR_DOCUMENT}" ")axlic" trust_floor_terminator_position)
+if(NOT trust_floor_terminator_position LESS 0)
+  message(FATAL_ERROR "client/keyring/trust-floor.json contains the raw-string terminator )axlic")
+endif()
 configure_file(
   src/core/embedded_trust_floor.cpp.in
   "${CMAKE_CURRENT_BINARY_DIR}/generated/embedded_trust_floor.cpp"

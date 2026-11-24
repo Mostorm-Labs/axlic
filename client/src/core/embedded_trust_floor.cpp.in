@@ -6,7 +6,10 @@ namespace axlic::core {
 namespace {
 
 // Generated at configure time from client/keyring/trust-floor.json.
-// The raw-string delimiter is chosen so no JSON content can terminate it.
+// Key ids come from fetch_trust_floor.py, which restricts them to
+// [A-Za-z0-9][A-Za-z0-9._-] so the JSON can never contain the ")axlic"
+// raw-string terminator; CMake additionally fails configure on any such
+// occurrence in the document.
 constexpr char kEmbeddedTrustFloorJson[] = R"axlic(@TRUST_FLOOR_JSON@)axlic";
 
 }  // namespace

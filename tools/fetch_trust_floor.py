@@ -22,6 +22,7 @@ import base64
 import json
 import os
 import pathlib
+import re
 import sys
 import tempfile
 import urllib.error
@@ -111,6 +112,13 @@ def main(argv: list[str]) -> int:
         return 1
     if len(set(args.keys)) != len(args.keys):
         print("fetch_trust_floor: duplicate --key names", file=sys.stderr)
+        return 1
+    # Key ids become JSON string values embedded in a C++ raw string; keep
+    # them to a conservative identifier charset so they can never form the
+    # ")axlic" raw-string terminator (defense for tools/check + CMake guard).
+    invalid_names = [name for name in args.keys if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", name)]
+    if invalid_names:
+        print(f"fetch_trust_floor: key names must match [A-Za-z0-9][A-Za-z0-9._-] (max 128 chars): {invalid_names}", file=sys.stderr)
         return 1
 
     try:
