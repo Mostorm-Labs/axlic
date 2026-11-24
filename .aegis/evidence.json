@@ -80,6 +80,17 @@
     {"id":"EV-A1-PHYSICAL-TPM","status":"available","kind":"external-evidence-digest","ref":"sha256:87347e9feb6715ce9515840ecdddc85280f55baf126eb2c4e79ce1da22914cd7"},
     {"id":"EV-GIT-A0-LIMITS-CORPUS","status":"available","kind":"repository-artifact","ref":"reference/vectors/a0/limits.json"},
     {"id":"EV-D105-LIMITS-CORPUS-DIGEST","status":"available","kind":"external-evidence-digest","ref":"sha256:291df89a11bbb1f25b70ef608de76db87d3aa79eb972c2d0a28da3b5b82800ae"},
-    {"id":"EV-M0-REPOSITORY-TREE","status":"available","kind":"repository-inspection","ref":"main@eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5"}
+    {"id":"EV-M0-REPOSITORY-TREE","status":"available","kind":"repository-inspection","ref":"main@eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5"},
+    {"id":"EV-GIT-A2-PACKAGE","status":"available","kind":"repository-artifact","ref":".aegis/packages/AXL-V1-A2-P31.md"},
+    {"id":"EV-A2-01-LOCAL","status":"available","kind":"gate-evidence","ref":"466175df7252bf75f1f888ee498bb9b80fb09056 (D-107 EV-A2-01 installation matrix, local Catch2 run)"},
+    {"id":"EV-A2-02-LOCAL","status":"available","kind":"gate-evidence","ref":"466175df7252bf75f1f888ee498bb9b80fb09056 (D-107 EV-A2-02 keyring merge matrix, local Catch2 run)"},
+    {"id":"EV-A2-03-LOCAL","status":"available","kind":"gate-evidence","ref":"466175df7252bf75f1f888ee498bb9b80fb09056 (D-107 EV-A2-03 registration dual-state matrix, local Catch2 run)"},
+    {"id":"EV-A2-04-CLI-CONTRACT","status":"available","kind":"gate-evidence","ref":"466175df7252bf75f1f888ee498bb9b80fb09056 (D-107 EV-A2-04 a2_library_plane_cli_contract, 26 process-level cases)"},
+    {"id":"EV-A2-05-ZERO-REGRESSION","status":"available","kind":"gate-evidence","ref":"466175df7252bf75f1f888ee498bb9b80fb09056 (D-107 EV-A2-05 ctest 95/95, offline boundary, no external references)"},
+    {"id":"EV-A2-OFFLINE-BOUNDARY-PRODUCTION","status":"available","kind":"gate-evidence","ref":"466175df7252bf75f1f888ee498bb9b80fb09056 (D-107 production axlic.exe --expect-absent offline boundary)"},
+    {"id":"EV-GIT-A2-RESULT","status":"available","kind":"repository-revision","ref":"466175df7252bf75f1f888ee498bb9b80fb09056"},
+    {"id":"EV-GIT-A2-INTEGRATION","status":"available","kind":"repository-revision","ref":"ed76d7d2bbe45f2bbb281412a3b868022ccb9223"},
+    {"id":"EV-A2-HOSTED-RERUN","status":"available","kind":"gate-evidence","ref":"run 45349180130/job 138291039775@4fdf2b3e97ea239bf4e63ced1ee71c45cedcd63a (D-108 hosted rerun, all frozen blocking evidence steps green)"},
+    {"id":"EV-GIT-A2-INTEGRATION-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/implementation/A2/repository-integration-closure.md"}
   ]
 }

@@ -20,6 +20,16 @@
       "integrated_revision":"eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5",
       "gate_decision_binding":{"type":"bound","gate_decision_id":"D-102"},
       "evidence_ids":["EV-GIT-A1-RESULT","EV-GIT-A1-INTEGRATION","EV-NOTION-A1-INTEGRATION"]
+    },
+    {
+      "id":"INT-AXL-V1-A2",
+      "kind":"merge",
+      "ref":"4fdf2b3e97ea239bf4e63ced1ee71c45cedcd63a",
+      "target_ref":"main",
+      "status":"integrated",
+      "integrated_revision":"ed76d7d2bbe45f2bbb281412a3b868022ccb9223",
+      "gate_decision_binding":{"type":"bound","gate_decision_id":"D-108"},
+      "evidence_ids":["EV-GIT-A2-RESULT","EV-GIT-A2-INTEGRATION","EV-A2-HOSTED-RERUN","EV-GIT-A2-INTEGRATION-AUTHORITY"]
     }
   ]
 }

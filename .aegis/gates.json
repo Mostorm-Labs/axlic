@@ -9,11 +9,12 @@
     {"id":"D-093","gate_id":"AXL-V1-A0-P34","verdict":"BLOCKED_IMPLEMENTATION","status":"historical","evidence_ids":["EV-NOTION-A0-P34-B1"]},
     {"id":"D-095","gate_id":"AXL-V1-A0-P34","verdict":"PASS_WITH_FINDINGS","status":"current","evidence_ids":["EV-NOTION-A0-P34-PASS","EV-GIT-A0-RESULT"]},
     {"id":"D-102","gate_id":"AXL-V1-A1-P34","verdict":"PASS_WITH_FINDINGS","status":"current","evidence_ids":["EV-NOTION-A1-P34-PASS","EV-GIT-A1-RESULT","EV-A1-PHYSICAL-TPM"]},
-    {"id":"D-107","gate_id":"AXL-V1-A2-P34","verdict":"PASS_WITH_FINDINGS","status":"current","evidence_ids":["EV-A2-01-LOCAL","EV-A2-02-LOCAL","EV-A2-03-LOCAL","EV-A2-04-CLI-CONTRACT","EV-A2-05-ZERO-REGRESSION","EV-A2-OFFLINE-BOUNDARY-PRODUCTION"]}
+    {"id":"D-107","gate_id":"AXL-V1-A2-P34","verdict":"PASS_WITH_FINDINGS","status":"historical","evidence_ids":["EV-A2-01-LOCAL","EV-A2-02-LOCAL","EV-A2-03-LOCAL","EV-A2-04-CLI-CONTRACT","EV-A2-05-ZERO-REGRESSION","EV-A2-OFFLINE-BOUNDARY-PRODUCTION"]},
+    {"id":"D-108","gate_id":"AXL-V1-A2-P34","verdict":"PASS_WITH_FINDINGS","status":"current","evidence_ids":["EV-GIT-A2-RESULT","EV-A2-HOSTED-RERUN","EV-GIT-A2-INTEGRATION"]}
   ],
   "current_gate_decisions": [
     {"gate_id":"AXL-V1-A0-P34","decision_id":"D-095"},
     {"gate_id":"AXL-V1-A1-P34","decision_id":"D-102"},
-    {"gate_id":"AXL-V1-A2-P34","decision_id":"D-107"}
+    {"gate_id":"AXL-V1-A2-P34","decision_id":"D-108"}
   ]
 }

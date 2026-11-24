@@ -1,14 +1,14 @@
 {
   "schema_version": "0.6",
   "projection_basis": {
-    "repository_revision": "eb1ab6ecb6afc31a6bc178a671d4f433414ad8c5",
+    "repository_revision": "ed76d7d2bbe45f2bbb281412a3b868022ccb9223",
     "authority_source": "repository",
     "manifests": ["project.json","authorities.json","gates.json","evidence.json","integrations.json"]
   },
-  "active_stage": "P31 AXL-V1-A2 Task Packaging",
-  "earliest_untrusted_layer": "implementation",
-  "recommended_stage": "P31",
-  "recommended_owner": "aegis-implementation",
+  "active_stage": "awaiting successor definition (host-bridge integration follow-up per D-106/D-108)",
+  "earliest_untrusted_layer": "authority",
+  "recommended_stage": "P30",
+  "recommended_owner": "aegis",
   "authority_migration": {
     "status": "migration_complete",
     "current_source_policy": "repository-cutover",
@@ -18,7 +18,8 @@
   "blocking_gates": [],
   "integration_conformance": [
     {"integration_id":"INT-AXL-V1-A0","conformance":"conforming"},
-    {"integration_id":"INT-AXL-V1-A1","conformance":"conforming"}
+    {"integration_id":"INT-AXL-V1-A1","conformance":"conforming"},
+    {"integration_id":"INT-AXL-V1-A2","conformance":"conforming"}
   ],
   "nonconforming_integrations": [],
   "findings": [
@@ -51,6 +52,7 @@
     "All supplied Notion export artifacts are now cut over or explicitly repository-native; no migration item remains.",
     "Authority relocation does not change lifecycle ownership: active_stage remains P31 AXL-V1-A2 Task Packaging and earliest_untrusted_layer remains implementation.",
     "No standalone A1 P32 Notion page was discovered by the M0 scoped search; the root Authority records its lifecycle fact.",
-    "No deterministic tools.aegis_state implementation was found in the inspected repository tree, so this projection must be revalidated when deterministic state tooling is introduced."
+    "No deterministic tools.aegis_state implementation was found in the inspected repository tree, so this projection must be revalidated when deterministic state tooling is introduced.",
+    "D-108 refresh (2026-11-24): AXL-V1-A2 is Gate-closed (D-107) and repository-integrated (INT-AXL-V1-A2 bound to D-108, conforming reviewed-delta integration at main@ed76d7d2bbe45f2bbb281412a3b868022ccb9223). The earlier M0 statement that active_stage remains P31 AXL-V1-A2 Task Packaging is superseded by this refresh; active_stage is now awaiting successor definition (host-bridge integration follow-up per the D-106/D-108 boundary) and no P31 successor is authorized."
   ]
 }
