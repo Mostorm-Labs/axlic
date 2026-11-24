@@ -96,6 +96,12 @@ jobs:
           --implementation-revision ${{ github.sha }}
           --report evidence/a2-offline-no-server.json
 
+      - name: Prove deliverables contain no external repository references
+        run: >-
+          python tools/check_external_references.py
+          --implementation-revision ${{ github.sha }}
+          --report evidence/a2-no-external-references.json
+
       - name: Prove packaging-time trust floor export fails closed without a backend
         shell: pwsh
         run: |
