@@ -47,10 +47,16 @@ class FakeStateStore final : public ILicenseStateStore {
 
 class FakeLock final : public IMutationLock {
  public:
-  LockOutcome acquire() override { return busy ? LockOutcome::busy : LockOutcome::acquired; }
+  LockOutcome acquire() override {
+    if (busy) {
+      return LockOutcome::busy;
+    }
+    return denied ? LockOutcome::access_denied : LockOutcome::acquired;
+  }
   void release() noexcept override { releases += 1U; }
 
   bool busy{false};
+  bool denied{false};
   unsigned releases{0U};
 };
 
@@ -143,6 +149,17 @@ TEST_CASE("busy lock maps to a retryable code without writing") {
   const auto result = axlic::core::adopt_registration(store, lock, reference('7'));
   CHECK(result.code == axlic::core::RegistrationCode::local_state_busy);
   CHECK(result.retryable);
+  CHECK(store.writes == 0U);
+  CHECK(lock.releases == 0U);
+}
+
+TEST_CASE("access-denied lock maps to the privilege code without writing") {
+  FakeStateStore store;
+  FakeLock lock;
+  lock.denied = true;
+  const auto result = axlic::core::adopt_registration(store, lock, reference('7'));
+  CHECK(result.code == axlic::core::RegistrationCode::local_write_privilege_required);
+  CHECK_FALSE(result.retryable);
   CHECK(store.writes == 0U);
   CHECK(lock.releases == 0U);
 }

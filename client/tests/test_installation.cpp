@@ -53,10 +53,16 @@ class FakeStateStore final : public ILicenseStateStore {
 
 class FakeLock final : public IMutationLock {
  public:
-  LockOutcome acquire() override { return busy ? LockOutcome::busy : LockOutcome::acquired; }
+  LockOutcome acquire() override {
+    if (busy) {
+      return LockOutcome::busy;
+    }
+    return denied ? LockOutcome::access_denied : LockOutcome::acquired;
+  }
   void release() noexcept override { releases += 1U; }
 
   bool busy{false};
+  bool denied{false};
   unsigned releases{0U};
 };
 
@@ -286,6 +292,44 @@ TEST_CASE("busy lock maps to a retryable result before any verification") {
   CHECK(result.code == InstallCode::local_state_busy);
   CHECK(result.retryable);
   CHECK(lock.releases == 0U);
+}
+
+TEST_CASE("access-denied lock maps to the privilege result") {
+  const auto source = fixture();
+  FakeStateStore store;
+  store.exists = true;
+  store.state.registration = RegistrationAssociation{.device_id = source.device};
+  FakeLock lock;
+  lock.denied = true;
+  const auto result =
+      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1", 1U));
+  CHECK(result.code == InstallCode::local_write_privilege_required);
+  CHECK_FALSE(result.retryable);
+  CHECK(lock.releases == 0U);
+}
+
+TEST_CASE("install result echoes the committed credential") {
+  const auto source = fixture();
+  FakeStateStore store;
+  store.exists = true;
+  store.state.registration = RegistrationAssociation{.device_id = source.device};
+  FakeLock lock;
+  const auto first =
+      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1", 2U));
+  REQUIRE(first.code == InstallCode::ok);
+  REQUIRE(first.installed.has_value());
+  CHECK(first.installed->authority_revision == 3U);
+  CHECK(first.installed->credential_generation == 7U);
+  CHECK(first.installed->policy_version == 2U);
+  REQUIRE(store.state.credential.has_value());
+
+  // Idempotent same-version reinstall still echoes (with the refreshed
+  // policy version) so the CLI response never re-reads state.
+  const auto again =
+      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1", 5U));
+  REQUIRE(again.code == InstallCode::ok_idempotent);
+  REQUIRE(again.installed.has_value());
+  CHECK(again.installed->policy_version == 5U);
 }
 
 TEST_CASE("held version reflects the stored triple or nothing") {

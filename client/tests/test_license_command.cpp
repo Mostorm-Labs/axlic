@@ -4,10 +4,13 @@
 #include <catch2/catch_test_macros.hpp>
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <cstdint>
+#include <fstream>
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -23,6 +26,7 @@ using axlic::core::StateStoreOutcome;
 class FakeStateStore final : public ILicenseStateStore {
  public:
   LicenseStateRead read() override {
+    reads += 1U;
     if (fail_read != StateStoreOutcome::ok) {
       return {fail_read, std::nullopt};
     }
@@ -42,6 +46,7 @@ class FakeStateStore final : public ILicenseStateStore {
   LicenseState state;
   bool exists{false};
   StateStoreOutcome fail_read{StateStoreOutcome::ok};
+  unsigned reads{0U};
 };
 
 class FakeLock final : public IMutationLock {
@@ -97,6 +102,15 @@ InstalledCredential installed() {
 
 nlohmann::json parse(const axlic::core::RenderedCommand& rendered) {
   return nlohmann::json::parse(rendered.json);
+}
+
+std::vector<std::uint8_t> hex_bytes(const std::string& value) {
+  std::vector<std::uint8_t> result;
+  result.reserve(value.size() / 2U);
+  for (std::size_t index = 0; index < value.size(); index += 2U) {
+    result.push_back(static_cast<std::uint8_t>(std::stoul(value.substr(index, 2U), nullptr, 16)));
+  }
+  return result;
 }
 
 }  // namespace
@@ -204,4 +218,34 @@ TEST_CASE("corrupt license state maps to the local-state failure family") {
   const auto rendered = axlic::core::render_status(store);
   CHECK(rendered.exit_code == 3);
   CHECK(parse(rendered).at("code") == "LOCAL_STATE_CORRUPT");
+}
+
+TEST_CASE("install response echoes the committed credential without re-reading state") {
+  std::ifstream stream(std::string(AXLIC_SOURCE_DIR) + "/reference/vectors/a2/install.json");
+  REQUIRE(stream.good());
+  const auto document = nlohmann::json::parse(stream);
+  axlic::wire::TrustedPublicKey key{.key_id = document.at("key_id").get<std::string>()};
+  const auto key_bytes = hex_bytes(document.at("public_key_xy_hex").get<std::string>());
+  REQUIRE(key_bytes.size() == key.public_key_xy.size());
+  std::copy(key_bytes.begin(), key_bytes.end(), key.public_key_xy.begin());
+  const std::vector<axlic::wire::TrustedPublicKey> trusted_keys{std::move(key)};
+  const auto artifact = hex_bytes(document.at("artifacts").at("v1").at("hex").get<std::string>());
+  const auto device = axlic::core::DeviceReference::parse(document.at("device_id").get<std::string>());
+  REQUIRE(device.has_value());
+
+  FakeStateStore store;
+  store.exists = true;
+  store.state.registration = RegistrationAssociation{.device_id = *device};
+  FakeLock lock;
+  const axlic::core::InstallRequest request{.artifact = artifact, .policy_version = 4U};
+  const auto rendered = axlic::core::render_install(store, lock, trusted_keys, request);
+  CHECK(rendered.exit_code == 0);
+  const auto result = parse(rendered);
+  CHECK(result.at("data").at("result") == "OK");
+  CHECK(result.at("data").at("authority_revision") == 3U);
+  CHECK(result.at("data").at("credential_generation") == 7U);
+  CHECK(result.at("data").at("policy_version") == 4U);
+  // Exactly one read (inside install_credential): the response must come
+  // from the install result, never a second read after the lock released.
+  CHECK(store.reads == 1U);
 }

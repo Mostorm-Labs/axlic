@@ -6,6 +6,7 @@
 #include <windows.h>
 
 #include <chrono>
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <optional>
@@ -243,6 +244,55 @@ TEST_CASE("future envelope version is classified as unsupported") {
   WindowsLicenseStateStore store(root.path, codec, security);
   write_state_file(store.state_path(), R"json({"format":"axlicense-license-state","envelope_version":2,"protected_blob_hex":"00"})json");
   CHECK(store.read().outcome == StateStoreOutcome::unsupported);
+}
+
+TEST_CASE("license state malformed odd and non-hex envelopes fail closed") {
+  TemporaryRoot root;
+  XorProtector protector;
+  LicenseStateCodec codec(protector);
+  AllowTestRoot security;
+  WindowsLicenseStateStore store(root.path, codec, security);
+  // An odd-length hex blob must be rejected by validation, never reach the
+  // pair-consumed decoder.
+  write_state_file(store.state_path(),
+                   R"json({"format":"axlicense-license-state","envelope_version":1,"protected_blob_hex":"0"})json");
+  CHECK(store.read().outcome == StateStoreOutcome::corrupt);
+  write_state_file(store.state_path(),
+                   R"json({"format":"axlicense-license-state","envelope_version":1,"protected_blob_hex":"zz"})json");
+  CHECK(store.read().outcome == StateStoreOutcome::corrupt);
+}
+
+TEST_CASE("oversized unsigned timestamps fail closed as corrupt") {
+  TemporaryRoot root;
+  XorProtector protector;
+  LicenseStateCodec codec(protector);
+  AllowTestRoot security;
+  WindowsLicenseStateStore store(root.path, codec, security);
+
+  const auto make_carrier = [&protector](const std::string& plaintext_json) {
+    const std::vector<std::uint8_t> plaintext(plaintext_json.begin(), plaintext_json.end());
+    const auto protected_value = protector.protect(plaintext);
+    std::string hex;
+    constexpr std::array<char, 16> digits{'0', '1', '2', '3', '4', '5', '6', '7', '8',
+                                          '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+    for (const auto byte : protected_value.bytes) {
+      hex.push_back(digits[byte >> 4U]);
+      hex.push_back(digits[byte & 0x0fU]);
+    }
+    return "{\"format\":\"axlicense-license-state\",\"envelope_version\":1,\"protected_blob_hex\":\"" + hex +
+           "\"}";
+  };
+
+  // issued_at above INT64_MAX would wrap to a negative value when read as a
+  // static_cast int64.
+  write_state_file(store.state_path(), make_carrier(
+      R"json({"schema_version":{"major":1,"minor":0},"state_generation":1,"credential":{"credential_id":"cred-1","license_grant_id":"grant-1","binding_id":"binding-1","device_id":"axldev_00000000000000000000000000000007","authority_revision":3,"credential_generation":7,"issued_at":18446744073709551615,"policy_version":2,"entitlements":[]}})json"));
+  CHECK(store.read().outcome == StateStoreOutcome::corrupt);
+
+  // not_before above INT64_MAX would wrap to -1 and fail open.
+  write_state_file(store.state_path(), make_carrier(
+      R"json({"schema_version":{"major":1,"minor":0},"state_generation":1,"credential":{"credential_id":"cred-1","license_grant_id":"grant-1","binding_id":"binding-1","device_id":"axldev_00000000000000000000000000000007","authority_revision":3,"credential_generation":7,"issued_at":100,"policy_version":2,"entitlements":[{"entitlement_id":"e","product_id":"p","right_kind":1,"grant_semantics":1,"validity":{"kind":2,"not_before":18446744073709551615,"not_after":20}}]}})json"));
+  CHECK(store.read().outcome == StateStoreOutcome::corrupt);
 }
 
 TEST_CASE("write failure at a commit point leaves the previous state intact") {

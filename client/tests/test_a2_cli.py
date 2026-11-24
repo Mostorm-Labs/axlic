@@ -65,7 +65,12 @@ def main() -> None:
             raise AssertionError(f"{case_id}: success returned {returncode}")
         if not expected_ok and returncode == 0:
             raise AssertionError(f"{case_id}: failure returned zero")
-        observations.append({"id": case_id, "result": "PASS", "code": expected_code, "exit_code": returncode})
+        # Keep the observable data in the scan set so the leak check below
+        # covers the actual command output, not just locally built constants.
+        observations.append(
+            {"id": case_id, "result": "PASS", "code": expected_code, "exit_code": returncode,
+             "data": result.get("data")}
+        )
         return result
 
     with tempfile.TemporaryDirectory(prefix="axlic-a2-cli-") as directory:
@@ -190,6 +195,46 @@ def main() -> None:
         held = observe("held-version-idempotent", [*base, "held-version"], "OK", True)
         if held["data"]["version"]["policyVersion"] != 4:
             raise AssertionError(f"policyVersion not refreshed: {held['data']}")
+
+        # Numeric and artifact input boundaries are rejected consistently on
+        # both CLI surfaces; a 20-digit UINT64_MAX stays legal.
+        observe(
+            "install-policy-version-zero",
+            [*base, "install", str(artifact_paths["v1"]), "--policy-version", "0"],
+            "COMMAND_INVALID",
+            False,
+        )
+        observe(
+            "install-policy-version-overflow",
+            [*base, "install", str(artifact_paths["v1"]), "--policy-version", "99999999999999999999"],
+            "COMMAND_INVALID",
+            False,
+        )
+        max_install = observe(
+            "install-policy-version-max",
+            [*base, "install", str(artifact_paths["v1"]), "--policy-version", "18446744073709551615"],
+            "OK",
+            True,
+        )
+        if max_install["data"]["result"] != "OK_IDEMPOTENT":
+            raise AssertionError(f"UINT64_MAX should be an idempotent reinstall: {max_install['data']}")
+        held = observe("held-version-max", [*base, "held-version"], "OK", True)
+        if held["data"]["version"]["policyVersion"] != 18446744073709551615:
+            raise AssertionError(f"UINT64_MAX policy version not persisted: {held['data']}")
+        observe(
+            "install-artifact-missing",
+            [*base, "install", str(artifacts / "missing.cbor"), "--policy-version", "1"],
+            "CREDENTIAL_INVALID",
+            False,
+        )
+        empty_artifact = artifacts / "empty.cbor"
+        empty_artifact.write_bytes(b"")
+        observe(
+            "install-artifact-empty",
+            [*base, "install", str(empty_artifact), "--policy-version", "1"],
+            "CREDENTIAL_INVALID",
+            False,
+        )
 
         # Newer revision, then the revocation credential clears entitlements.
         observe(
