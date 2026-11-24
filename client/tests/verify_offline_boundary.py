@@ -17,6 +17,11 @@ def main() -> None:
     parser.add_argument("--compiler", type=Path)
     parser.add_argument("--build-dir", type=Path)
     parser.add_argument("--state", type=Path, required=True)
+    parser.add_argument(
+        "--expect-absent",
+        action="store_true",
+        help="production-binary mode: run without the test fixture variable and expect CREDENTIAL_NOT_FOUND",
+    )
     parser.add_argument("--report", type=Path)
     parser.add_argument("--implementation-revision", default="WORKTREE")
     args = parser.parse_args()
@@ -49,7 +54,10 @@ def main() -> None:
         raise AssertionError(f"network/server dependencies detected: {discovered}")
 
     environment = os.environ.copy()
-    environment["AXLIC_A0_FIXTURE_STATE"] = str(args.state)
+    if args.expect_absent:
+        environment.pop("AXLIC_A0_FIXTURE_STATE", None)
+    else:
+        environment["AXLIC_A0_FIXTURE_STATE"] = str(args.state)
     environment["HTTP_PROXY"] = "http://127.0.0.1:9"
     environment["HTTPS_PROXY"] = "http://127.0.0.1:9"
     for name in ("AXLIC_SERVER", "DATABASE_URL", "PGHOST", "PGPORT"):
@@ -64,8 +72,30 @@ def main() -> None:
         shell=False,
     )
     result = json.loads(completed.stdout)
-    if completed.returncode != 0 or result.get("code") != "OK" or result.get("data", {}).get("credential_state") != "valid":
-        raise AssertionError("local status failed without server configuration")
+    if args.expect_absent:
+        # Environment independence instead of a hard CREDENTIAL_NOT_FOUND:
+        # since A2, a machine may legitimately hold an installed credential
+        # and production status then reports OK. The boundary claim is that
+        # removing the fixture variable changes nothing about the output.
+        fixture_environment = environment.copy()
+        fixture_environment["AXLIC_A0_FIXTURE_STATE"] = str(args.state)
+        with_fixture = subprocess.run(
+            [str(args.exe), "status"],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=fixture_environment,
+            shell=False,
+        )
+        if with_fixture.returncode != completed.returncode or with_fixture.stdout != completed.stdout:
+            raise AssertionError(
+                "production status consumed the A0 fixture seam: outputs diverge: "
+                f"{with_fixture.stdout!r} vs {completed.stdout!r}"
+            )
+    else:
+        if completed.returncode != 0 or result.get("code") != "OK" or result.get("data", {}).get("credential_state") != "valid":
+            raise AssertionError("local status failed without server configuration")
 
     report = {
         "artifact_id": "T-A0-05-offline-no-server",

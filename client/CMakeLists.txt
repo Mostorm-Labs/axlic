@@ -23,16 +23,44 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(qcbor)
 
+# Embedded trust floor: the checked-in packaging-time public-key artifact is
+# compiled into axlic_core via a generated source file. An empty key set is
+# the initial production state (fail-closed).
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/keyring/trust-floor.json" AXLIC_TRUST_FLOOR_DOCUMENT)
+string(JSON AXLIC_TRUST_FLOOR_FORMAT ERROR_VARIABLE trust_floor_json_error GET "${AXLIC_TRUST_FLOOR_DOCUMENT}" format)
+if(trust_floor_json_error OR NOT AXLIC_TRUST_FLOOR_FORMAT STREQUAL "axlic-trust-floor")
+  message(FATAL_ERROR "client/keyring/trust-floor.json is not a valid axlic-trust-floor document: ${trust_floor_json_error}")
+endif()
+set(TRUST_FLOOR_JSON "${AXLIC_TRUST_FLOOR_DOCUMENT}")
+# Defense in depth: a key id containing the raw-string terminator would break
+# the generated source at compile time with a hard-to-diagnose error.
+string(FIND "${AXLIC_TRUST_FLOOR_DOCUMENT}" ")axlic" trust_floor_terminator_position)
+if(NOT trust_floor_terminator_position LESS 0)
+  message(FATAL_ERROR "client/keyring/trust-floor.json contains the raw-string terminator )axlic")
+endif()
+configure_file(
+  src/core/embedded_trust_floor.cpp.in
+  "${CMAKE_CURRENT_BINARY_DIR}/generated/embedded_trust_floor.cpp"
+  @ONLY
+)
+
 add_library(axlic_core STATIC
+  src/core/device_reference.cpp
   src/core/identity.cpp
   src/core/identity_command.cpp
+  src/core/installation.cpp
+  src/core/license_command.cpp
+  src/core/registration.cpp
   src/core/runtime_license.cpp
+  src/core/trust_keyring.cpp
   src/windows/cng_identity_provider.cpp
   src/windows/machine_state.cpp
   src/windows/machine_state_repository.cpp
   src/windows/mutation_lock.cpp
   src/wire/credential.cpp
   src/wire/qcbor_codec.cpp
+  src/windows/license_state_repository.cpp
+  "${CMAKE_CURRENT_BINARY_DIR}/generated/embedded_trust_floor.cpp"
 )
 target_compile_features(axlic_core PUBLIC cxx_std_20)
 target_include_directories(axlic_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -66,6 +94,11 @@ if(BUILD_TESTING)
   target_compile_features(axlic_a1_cli_scenario PRIVATE cxx_std_20)
   axlic_enable_warnings(axlic_a1_cli_scenario)
 
+  add_executable(axlic_a2_cli_scenario tests/a2_cli_scenario.cpp)
+  target_link_libraries(axlic_a2_cli_scenario PRIVATE axlic_core nlohmann_json::nlohmann_json)
+  target_compile_features(axlic_a2_cli_scenario PRIVATE cxx_std_20)
+  axlic_enable_warnings(axlic_a2_cli_scenario)
+
   FetchContent_Declare(
     Catch2
     URL https://codeload.github.com/catchorg/Catch2/tar.gz/8b08d4d79514f45f7e4ce2a607ac9c94e920d1bb
@@ -76,12 +109,19 @@ if(BUILD_TESTING)
   add_executable(axlic_unit_tests
     tests/test_credential.cpp
     tests/test_cng_status.cpp
+    tests/test_device_reference.cpp
     tests/test_identity_manager.cpp
     tests/test_identity_command.cpp
+    tests/test_installation.cpp
+    tests/test_license_command.cpp
+    tests/test_license_state.cpp
+    tests/test_license_state_repository.cpp
     tests/test_machine_state.cpp
     tests/test_machine_state_repository.cpp
     tests/test_mutation_lock.cpp
+    tests/test_registration.cpp
     tests/test_runtime_license.cpp
+    tests/test_trust_keyring.cpp
   )
   target_link_libraries(axlic_unit_tests PRIVATE axlic_core Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
   target_compile_features(axlic_unit_tests PRIVATE cxx_std_20)
@@ -122,5 +162,11 @@ if(BUILD_TESTING)
     NAME a1_identity_error_process_matrix
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_a1_cli_scenarios.py
       --exe $<TARGET_FILE:axlic_a1_cli_scenario>
+  )
+  add_test(
+    NAME a2_library_plane_cli_contract
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_a2_cli.py
+      --exe $<TARGET_FILE:axlic_a2_cli_scenario>
+      --vectors ${PROJECT_SOURCE_DIR}/reference/vectors/a2/install.json
   )
 endif()

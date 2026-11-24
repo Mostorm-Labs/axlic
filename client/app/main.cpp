@@ -1,7 +1,14 @@
+#include "axlic/core/cli_numbers.hpp"
+#include "axlic/core/command_envelope.hpp"
 #include "axlic/core/identity.hpp"
 #include "axlic/core/identity_command.hpp"
+#include "axlic/core/installation.hpp"
+#include "axlic/core/license_command.hpp"
+#include "axlic/core/license_state.hpp"
 #include "axlic/core/runtime_license.hpp"
+#include "axlic/core/trust_keyring.hpp"
 #include "axlic/windows/cng_identity_provider.hpp"
+#include "axlic/windows/license_state_repository.hpp"
 #include "axlic/windows/machine_state.hpp"
 #include "axlic/windows/machine_state_repository.hpp"
 #include "axlic/windows/mutation_lock.hpp"
@@ -15,32 +22,16 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#include <filesystem>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace {
 using Json = nlohmann::json;
-
-Json command_result(
-    const bool ok,
-    const std::string_view code,
-    const std::string_view category,
-    const bool retryable = false,
-    std::optional<Json> data = std::nullopt) {
-  Json result = {{"contract_version", "1.0"},
-                 {"ok", ok},
-                 {"code", code},
-                 {"category", category},
-                 {"retryable", retryable},
-                 {"correlation_ref", "a1-local"}};
-  if (data) {
-    result["data"] = std::move(*data);
-  }
-  return result;
-}
 
 int emit(const Json& result, const int exit_code) {
   std::cout << result.dump() << '\n';
@@ -52,37 +43,87 @@ int emit(const axlic::core::RenderedCommand& result) {
   return result.exit_code;
 }
 
-int credential_failure(const axlic::core::CredentialState state) {
-  const auto code = state == axlic::core::CredentialState::absent
-                        ? "CREDENTIAL_NOT_FOUND"
-                        : (state == axlic::core::CredentialState::unsupported ? "CREDENTIAL_UNSUPPORTED"
-                                                                              : "CREDENTIAL_INVALID");
-  const auto name = state == axlic::core::CredentialState::absent ? "absent" : "invalid";
-  return emit(command_result(false, code, "credential", false, Json{{"credential_state", name}}), 3);
+// Shared wiring for every license-plane command: protected state root,
+// license state and the machine-wide mutation lock. The machine-identity
+// store and trust keyring are assembled by the commands that need them.
+struct LicensePlane {
+  axlic::windows::DpapiProtector protector{};
+  axlic::windows::LicenseStateCodec license_codec{protector};
+  axlic::windows::WindowsStateRootSecurity security{};
+  std::filesystem::path root{};
+  std::optional<axlic::windows::WindowsLicenseStateStore> license_state{};
+  axlic::windows::WindowsMutationLock lock{};
+};
+
+bool open_license_plane(LicensePlane& plane) {
+  plane.root = axlic::windows::program_data_state_root();
+  if (plane.root.empty()) {
+    return false;
+  }
+  plane.license_state.emplace(plane.root, plane.license_codec, plane.security);
+  return true;
 }
 
 int status_command() {
-  return credential_failure(axlic::core::RuntimeLicense::absent().status().credential_state);
+  LicensePlane plane;
+  if (!open_license_plane(plane)) {
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
+  }
+  return emit(axlic::core::render_status(*plane.license_state));
 }
 
 int entitlement_command(const std::string_view entitlement_id) {
-  const auto runtime = axlic::core::RuntimeLicense::absent();
-  const auto status = runtime.status();
-  if (status.credential_state != axlic::core::CredentialState::valid) {
-    return credential_failure(status.credential_state);
+  LicensePlane plane;
+  if (!open_license_plane(plane)) {
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
   }
   const auto now = std::chrono::duration_cast<std::chrono::seconds>(
                        std::chrono::system_clock::now().time_since_epoch())
                        .count();
-  const auto entitlement = runtime.entitlement(entitlement_id, now);
-  return emit(
-      command_result(
-          true,
-          "OK",
-          "none",
-          false,
-          Json{{"entitlement_id", entitlement_id}, {"granted", entitlement.granted}}),
-      0);
+  return emit(axlic::core::render_entitlement(*plane.license_state, entitlement_id, now));
+}
+
+int device_register_command(const std::vector<std::string_view>& args) {
+  LicensePlane plane;
+  if (!open_license_plane(plane)) {
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
+  }
+  axlic::windows::MachineStateCodec machine_codec{plane.protector};
+  axlic::windows::WindowsMachineStateStore machine_state(plane.root, machine_codec, plane.security);
+  if (args.empty()) {
+    return emit(axlic::core::render_device_register(machine_state, *plane.license_state));
+  }
+  if (args[0] == "adopt" && args.size() == 2U) {
+    return emit(axlic::core::render_device_register_adopt(*plane.license_state, plane.lock, args[1]));
+  }
+  if (args[0] == "reset" && args.size() == 1U) {
+    return emit(axlic::core::render_device_register_reset(*plane.license_state, plane.lock));
+  }
+  return emit(axlic::core::command_result("a1-local", false, "COMMAND_INVALID", "command"), axlic::core::kExitCommandInvalid);
+}
+
+int install_command(const std::string& path, const std::uint64_t policy_version) {
+  const auto artifact = axlic::core::read_artifact_file(path);
+  if (!artifact) {
+    return emit(axlic::core::command_result("a1-local", false, "CREDENTIAL_INVALID", "credential", false,
+                               Json{{"reason", "artifact_unreadable_or_oversize"}}),
+                axlic::core::kExitCredentialFailure);
+  }
+  LicensePlane plane;
+  if (!open_license_plane(plane)) {
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
+  }
+  const auto keyring = axlic::core::load_trust_keyring(plane.root);
+  const axlic::core::InstallRequest request{.artifact = *artifact, .policy_version = policy_version};
+  return emit(axlic::core::render_install(*plane.license_state, plane.lock, keyring.keys, request));
+}
+
+int held_version_command() {
+  LicensePlane plane;
+  if (!open_license_plane(plane)) {
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
+  }
+  return emit(axlic::core::render_held_version(*plane.license_state));
 }
 
 std::string generate_key_name() {
@@ -107,7 +148,7 @@ int identity_command() {
   axlic::windows::WindowsStateRootSecurity security;
   const auto root = axlic::windows::program_data_state_root();
   if (root.empty()) {
-    return emit(command_result(false, "INTERNAL_ERROR", "internal"), 4);
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
   }
   axlic::windows::WindowsMachineStateStore state(root, codec, security);
   axlic::windows::WindowsMutationLock lock;
@@ -128,7 +169,7 @@ int identity_command() {
 int main(const int argc, const char* const argv[]) {
   try {
     if (argc < 2) {
-      return emit(command_result(false, "COMMAND_INVALID", "command"), 2);
+      return emit(axlic::core::command_result("a1-local", false, "COMMAND_INVALID", "command"), axlic::core::kExitCommandInvalid);
     }
     const std::string_view command(argv[1]);
     if (command == "status" && argc == 2) {
@@ -140,8 +181,22 @@ int main(const int argc, const char* const argv[]) {
     if (command == "identity" && argc == 2) {
       return identity_command();
     }
-    return emit(command_result(false, "COMMAND_INVALID", "command"), 2);
+    if (command == "device-register") {
+      const std::vector<std::string_view> args(argv + 2, argv + argc);
+      return device_register_command(args);
+    }
+    if (command == "install" && argc == 5 && std::string_view(argv[3]) == "--policy-version") {
+      const auto policy_version = axlic::core::parse_u64_strict(argv[4], false);
+      if (!policy_version) {
+        return emit(axlic::core::command_result("a1-local", false, "COMMAND_INVALID", "command"), axlic::core::kExitCommandInvalid);
+      }
+      return install_command(argv[2], *policy_version);
+    }
+    if (command == "held-version" && argc == 2) {
+      return held_version_command();
+    }
+    return emit(axlic::core::command_result("a1-local", false, "COMMAND_INVALID", "command"), axlic::core::kExitCommandInvalid);
   } catch (...) {
-    return emit(command_result(false, "INTERNAL_ERROR", "internal"), 4);
+    return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
   }
 }

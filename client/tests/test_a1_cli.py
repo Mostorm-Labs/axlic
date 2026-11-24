@@ -38,8 +38,20 @@ def main() -> None:
     environment = os.environ.copy()
     environment["AXLIC_A0_FIXTURE_STATE"] = str(args.a0_state)
     status_code, status, status_stdout = invoke(args.exe, ["status"], environment)
-    if status_code == 0 or status.get("code") != "CREDENTIAL_NOT_FOUND":
-        raise AssertionError(f"production status consumed the A0 fixture seam: {status}")
+
+    # The boundary claim is environment independence, not a specific status
+    # outcome: since A2, a machine may legitimately hold an installed
+    # credential and production status then reports OK. Comparing a run with
+    # the fixture variable against a run without it proves the seam is
+    # ignored regardless of the machine's installed state.
+    stripped = os.environ.copy()
+    stripped.pop("AXLIC_A0_FIXTURE_STATE", None)
+    bare_code, bare, bare_stdout = invoke(args.exe, ["status"], stripped)
+    if status_stdout != bare_stdout or status_code != bare_code:
+        raise AssertionError(
+            "production status consumed the A0 fixture seam: outputs diverge: "
+            f"{status_stdout!r} vs {bare_stdout!r}"
+        )
 
     invalid_code, invalid, invalid_stdout = invoke(args.exe, ["identity", "unexpected"], environment)
     if invalid_code == 0 or invalid.get("code") != "COMMAND_INVALID":

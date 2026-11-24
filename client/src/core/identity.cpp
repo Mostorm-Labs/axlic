@@ -1,5 +1,7 @@
 #include "axlic/core/identity.hpp"
 
+#include "axlic/core/mutation_lock_guard.hpp"
+
 #include <utility>
 
 namespace axlic::core {
@@ -20,17 +22,6 @@ IdentityResult state_failure(const StateStoreOutcome outcome) {
   }
   return {IdentityCode::internal_error, false, std::nullopt};
 }
-
-class LockGuard {
- public:
-  explicit LockGuard(IMutationLock& lock) : lock_(lock) {}
-  ~LockGuard() { lock_.release(); }
-  LockGuard(const LockGuard&) = delete;
-  LockGuard& operator=(const LockGuard&) = delete;
-
- private:
-  IMutationLock& lock_;
-};
 
 bool matches_committed(const IdentityRecord& actual, const IdentityRecord& committed) {
   return actual == committed;
@@ -110,17 +101,17 @@ IdentityResult IdentityManager::ensure_identity() {
     return state_failure(initial.outcome);
   }
 
-  const auto lock_outcome = lock_.acquire();
-  if (lock_outcome == LockOutcome::busy) {
+  bool lock_retryable{false};
+  const MutationLockGuard guard(lock_, lock_retryable);
+  if (lock_retryable) {
     return {IdentityCode::local_state_busy, true, std::nullopt};
   }
-  if (lock_outcome == LockOutcome::access_denied) {
+  if (guard.denied()) {
     return {IdentityCode::local_write_privilege_required, false, std::nullopt};
   }
-  if (lock_outcome != LockOutcome::acquired) {
+  if (!guard.acquired()) {
     return {IdentityCode::internal_error, false, std::nullopt};
   }
-  LockGuard guard(lock_);
 
   const auto current = state_.read();
   if (current.outcome == StateStoreOutcome::ok) {

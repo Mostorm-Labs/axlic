@@ -6,6 +6,22 @@ namespace axlic::core {
 
 RuntimeLicense RuntimeLicense::absent() { return {}; }
 
+RuntimeLicense RuntimeLicense::from_installed(const InstalledCredential& installed) {
+  RuntimeLicense runtime;
+  runtime.state_ = CredentialState::valid;
+  wire::Credential credential;
+  credential.credential_id = installed.credential_id;
+  credential.license_grant_id = installed.license_grant_id;
+  credential.authority_revision = installed.authority_revision;
+  credential.binding_id = installed.binding_id;
+  credential.device_id = installed.device_id;
+  credential.credential_generation = installed.credential_generation;
+  credential.issued_at = installed.issued_at;
+  credential.entitlements = installed.entitlements;
+  runtime.credential_ = std::move(credential);
+  return runtime;
+}
+
 RuntimeLicense RuntimeLicense::from_verification(wire::VerificationResult result) {
   RuntimeLicense runtime;
   switch (result.status) {

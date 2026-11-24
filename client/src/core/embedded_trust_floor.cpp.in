@@ -1,0 +1,21 @@
+#include "axlic/core/trust_keyring.hpp"
+
+#include <string_view>
+
+namespace axlic::core {
+namespace {
+
+// Generated at configure time from client/keyring/trust-floor.json.
+// Key ids come from fetch_trust_floor.py, which restricts them to
+// [A-Za-z0-9][A-Za-z0-9._-] so the JSON can never contain the ")axlic"
+// raw-string terminator; CMake additionally fails configure on any such
+// occurrence in the document.
+constexpr char kEmbeddedTrustFloorJson[] = R"axlic(@TRUST_FLOOR_JSON@)axlic";
+
+}  // namespace
+
+std::string_view embedded_trust_floor_json() noexcept {
+  return kEmbeddedTrustFloorJson;
+}
+
+}  // namespace axlic::core
