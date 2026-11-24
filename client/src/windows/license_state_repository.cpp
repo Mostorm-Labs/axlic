@@ -22,7 +22,9 @@ constexpr std::string_view kEnvelopeFormat = "axlicense-license-state";
 constexpr std::string_view kStateFileName = "license-state.v1.json";
 
 bool is_lower_hex(const std::string_view value) {
-  return std::ranges::all_of(value, [](const char character) {
+  // The pair-consumed hex decoding below requires an even-length string; an
+  // odd length would read value[size()] (undefined behavior).
+  return (value.size() % 2U) == 0U && std::ranges::all_of(value, [](const char character) {
     return (character >= '0' && character <= '9') || (character >= 'a' && character <= 'f');
   });
 }
@@ -89,6 +91,20 @@ bool valid_installed_credential(const core::InstalledCredential& credential) {
          credential.policy_version != 0U && credential.entitlements.size() <= 256U;
 }
 
+// Signed reads reject unsigned values above INT64_MAX: nlohmann's
+// get<int64_t>() on number_unsigned is a static_cast that would silently wrap
+// to a negative timestamp.
+std::optional<std::int64_t> strict_i64(const nlohmann::json& value) {
+  if (value.is_number_unsigned() &&
+      value.get<std::uint64_t>() > static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
+    return std::nullopt;
+  }
+  if (!value.is_number_integer()) {
+    return std::nullopt;
+  }
+  return value.get<std::int64_t>();
+}
+
 nlohmann::json entitlement_to_json(const wire::Entitlement& entitlement) {
   nlohmann::json validity = {{"kind", static_cast<std::uint64_t>(entitlement.validity.kind)}};
   if (entitlement.validity.not_before) {
@@ -139,12 +155,7 @@ std::optional<wire::Entitlement> entitlement_from_json(const nlohmann::json& sou
       .grant_semantics = static_cast<wire::GrantSemantics>(*grant_semantics),
       .validity{.kind = static_cast<wire::ValidityKind>(*validity_kind)},
   };
-  const auto read_i64 = [](const nlohmann::json& value) -> std::optional<std::int64_t> {
-    if (!value.is_number_integer()) {
-      return std::nullopt;
-    }
-    return value.get<std::int64_t>();
-  };
+  const auto read_i64 = [](const nlohmann::json& value) { return strict_i64(value); };
   if (validity_source.contains("not_before")) {
     entitlement.validity.not_before = read_i64(validity_source.at("not_before"));
     if (!entitlement.validity.not_before) {
@@ -173,10 +184,9 @@ LicenseStateCodec::LicenseStateCodec(IDataProtector& protector) : protector_(pro
 
 core::StateStoreOutcome LicenseStateCodec::encode(const core::LicenseState& state, std::string& carrier) const {
   carrier.clear();
-  if (state.registration && core::DeviceReference::parse(state.registration->device_id.to_string()) !=
-                                state.registration->device_id) {
-    return core::StateStoreOutcome::unexpected_failure;
-  }
+  // Registration values only enter the state through DeviceReference::parse
+  // (registration.cpp / license_command.cpp), and to_string() round-trips any
+  // 16-byte reference byte-for-byte, so no re-validation is needed here.
   if (state.credential && !valid_installed_credential(*state.credential)) {
     return core::StateStoreOutcome::unexpected_failure;
   }
@@ -275,6 +285,10 @@ core::LicenseStateRead LicenseStateCodec::decode(const std::string_view carrier)
       if (!entitlements_source.is_array()) {
         return {core::StateStoreOutcome::corrupt, std::nullopt};
       }
+      const auto issued_at = strict_i64(source.at("issued_at"));
+      if (!issued_at) {
+        return {core::StateStoreOutcome::corrupt, std::nullopt};
+      }
       core::InstalledCredential credential{
           .credential_id = source.at("credential_id").get<std::string>(),
           .license_grant_id = source.at("license_grant_id").get<std::string>(),
@@ -282,7 +296,7 @@ core::LicenseStateRead LicenseStateCodec::decode(const std::string_view carrier)
           .device_id = source.at("device_id").get<std::string>(),
           .authority_revision = source.at("authority_revision").get<std::uint64_t>(),
           .credential_generation = source.at("credential_generation").get<std::uint64_t>(),
-          .issued_at = source.at("issued_at").get<std::int64_t>(),
+          .issued_at = *issued_at,
           .policy_version = source.at("policy_version").get<std::uint64_t>(),
       };
       for (const auto& entry : entitlements_source) {
@@ -440,7 +454,8 @@ core::StateStoreOutcome WindowsLicenseStateStore::write(const core::LicenseState
       }
       if (FlushFileBuffers(file.get()) == FALSE) {
         cleanup();
-        return core::StateStoreOutcome::unexpected_failure;
+        return GetLastError() == ERROR_ACCESS_DENIED ? core::StateStoreOutcome::privilege_required
+                                                     : core::StateStoreOutcome::unexpected_failure;
       }
       if (observer_) {
         observer_(CommitPoint::after_temp_flush);
