@@ -73,9 +73,26 @@ def main() -> None:
     )
     result = json.loads(completed.stdout)
     if args.expect_absent:
-        expected_code = "CREDENTIAL_NOT_FOUND"
-        if completed.returncode == 0 or result.get("code") != expected_code:
-            raise AssertionError(f"production status must fail closed as {expected_code}: {result}")
+        # Environment independence instead of a hard CREDENTIAL_NOT_FOUND:
+        # since A2, a machine may legitimately hold an installed credential
+        # and production status then reports OK. The boundary claim is that
+        # removing the fixture variable changes nothing about the output.
+        fixture_environment = environment.copy()
+        fixture_environment["AXLIC_A0_FIXTURE_STATE"] = str(args.state)
+        with_fixture = subprocess.run(
+            [str(args.exe), "status"],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=fixture_environment,
+            shell=False,
+        )
+        if with_fixture.returncode != completed.returncode or with_fixture.stdout != completed.stdout:
+            raise AssertionError(
+                "production status consumed the A0 fixture seam: outputs diverge: "
+                f"{with_fixture.stdout!r} vs {completed.stdout!r}"
+            )
     else:
         if completed.returncode != 0 or result.get("code") != "OK" or result.get("data", {}).get("credential_state") != "valid":
             raise AssertionError("local status failed without server configuration")
