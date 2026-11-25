@@ -1,11 +1,11 @@
 # AXL-V1-R1 P31 Task Package — Publish Pipeline (committed public keys)
 
-status: FROZEN_READY_FOR_P32
+status: P32_COMPLETE_GATE_D110_PASS_WITH_FINDINGS
 stage_owner: aegis-implementation
 process_profile: Full
 created_at: 2026-11-25
-result_revision: null
-gate_decision: null
+result_revision: f9e8c2e96bfd9fff3a8c1fa89a8f3fa292546ecf
+gate_decision: D-110 (PASS_WITH_FINDINGS, 2026-11-25)
 
 ## Repository identity
 
