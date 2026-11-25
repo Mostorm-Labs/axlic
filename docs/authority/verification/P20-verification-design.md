@@ -456,7 +456,7 @@ This section registers the verification-first contract for the A2 platform-integ
 
 ### Corroborative (non-blocking)
 
-- Manual end-to-end walkthrough on one Windows machine: `status` (absent) → `identity` → `device-register` (identity_value self-report) → `adopt` → independent-reference-signed fixture `install --policy-version` → `status`/`entitlement`/`held-version` correct; lower-version fixture rejected stale; the checked-in default floor stays empty, so a plain build remains fail-closed (D-109: the floor is derived offline from committed public keys; see §18).
+- Manual end-to-end walkthrough on one Windows machine: `status` (absent) → `identity` → `device-register` (identity_value self-report) → `adopt` → independent-reference-signed fixture `install --policy-version` → `status`/`entitlement`/`held-version` correct; lower-version fixture rejected stale.
 
 ### A2 evidence-family note
 
@@ -470,7 +470,7 @@ This section registers the verification-first contract for the AXL-V1-R1 Publish
 
 ### EV-R1-01 — Published-revision zero regression (blocking)
 
-- **Invariants:** the keyed build that is packaged passes the full `ctest` suite and the existing A1/A2 evidence steps (A2 CLI contract, deterministic vector regeneration, independent crypto cross-check, A0 CLI regression, A0 and production-binary offline boundaries, no external repository references).
+- **Invariants:** the keyed build that is packaged passes the full `ctest` suite and the existing A2 evidence steps (A2 CLI contract, deterministic vector regeneration, independent crypto cross-check, A0 CLI regression, A0 and production-binary offline boundaries, no external repository references).
 - **Failure modes detected:** publishing a revision that regresses Gate-closed behavior; shipping a binary that was never unit-tested with its embedded floor.
 - **Existing independent coverage:** none — the slice workflows run only on their own `codex/axl-v1-a*` branches; nothing triggers on `main` or on tags.
 - **Exact execution:** the `build` job of `.github/workflows/axlic-publish.yml` on the packaged source revision.
@@ -478,7 +478,7 @@ This section registers the verification-first contract for the AXL-V1-R1 Publish
 
 ### EV-R1-02 — Trust-floor source and fingerprint pin (blocking)
 
-- **Invariants:** the embedded floor is derived offline, with the Python standard library only, from the public-key file committed for the environment; that file must be exactly one PEM `PUBLIC KEY` block carrying an uncompressed P-256 SubjectPublicKeyInfo point whose SHA-256 equals the pinned fingerprint; `key_id` equals the environment's signing-key name and matches the identifier charset; any failure writes nothing.
+- **Invariants:** the embedded floor is derived offline, with the Python standard library only, from the public-key file committed for the environment; that file must be exactly one PEM `PUBLIC KEY` block carrying an uncompressed P-256 SubjectPublicKeyInfo point whose SHA-256 equals the pinned fingerprint; `key_id` equals the environment's signing-key name and matches the identifier charset; any failure writes nothing; the checked-in default document stays the empty key set, so a plain build remains fail-closed.
 - **Failure modes detected:** a wrong or corrupted key file committed (for example the test key saved as the production file); a malformed floor; a partial document.
 - **Existing independent coverage:** none — CI holds no private key, so no functional verification against the real environment is possible; the fingerprint pin is the only detector.
 - **Oracle/fixture:** the committed public-key files and the fingerprints recorded in README; tampered copies in unit tests.
@@ -495,7 +495,7 @@ This section registers the verification-first contract for the AXL-V1-R1 Publish
 
 ### EV-R1-04 — Package self-containment and integrity (blocking)
 
-- **Invariants:** the package carries `axlic.exe`, every non-OS DLL it imports (the app-local VC++ runtime), third-party notices with full license texts, `SHA256SUMS.txt` and `build-manifest.json`; checksums are consistent inside the zip, across the cross-job transfer and before publishing.
+- **Invariants:** the package carries `axlic.exe`, every non-OS DLL it needs (the app-local VC++ runtime: the DLLs it imports and, transitively, those they import), third-party notices with full license texts, `SHA256SUMS.txt` and `build-manifest.json`; checksums are consistent inside the zip, across the cross-job transfer and before publishing.
 - **Failure modes detected:** a missing runtime DLL (the binary starts on the build machine but not on a clean target); a corrupted transfer; an untraceable artifact.
 - **Existing independent coverage:** `client/tests/verify_offline_boundary.py` checks forbidden imports only; nothing checks that the remaining imports are satisfied.
 - **Oracle/fixture:** `dumpbin /DEPENDENTS` of the packaged executable against an OS allowlist; recomputed SHA-256.
@@ -511,7 +511,7 @@ This section registers the verification-first contract for the AXL-V1-R1 Publish
 
 ### EV-R1-06 — Release identity (blocking)
 
-- **Invariants:** production publishes only an existing `vX.Y.Z` tag whose version equals the tagged commit's `project(axlicense VERSION …)` and whose commit is an ancestor of `origin/main`, and never creates or moves a tag; the test channel derives `<project version>-test.<yyyyMMdd>.<run_number>` at the requested ref; the release type follows the channel (production = latest Release, test = Pre-release); manual re-publish replaces the same-named assets of the existing release; workflow inputs reach scripts through step `env:`, only SHA-pinned actions are used and no secret other than the automatic token is read.
+- **Invariants:** production publishes only an existing `vX.Y.Z` tag whose version equals the tagged commit's `project(axlicense VERSION …)` and whose commit is an ancestor of `origin/main`, and never creates or moves a tag; the test channel derives `<project version>-test.<yyyyMMdd>.<run_number>` at the requested ref; the release type follows the channel (production = latest Release, test = Pre-release); manual re-publish replaces the same-named assets of the existing release; workflow inputs reach scripts through step `env:`, only SHA-pinned actions are used, no secret other than the automatic token is read, the build job holds a read-only token, the token reaches only the publish steps that call `gh`, and a run with publishing disabled never reaches the publish job.
 - **Failure modes detected:** a mislabeled release; a tag pointing at unreviewed content; an accidental tag creation; duplicated or partially published releases; input injection into `run:` blocks.
 - **Existing independent coverage:** none (no release workflow existed).
 - **Oracle/fixture:** `tools/tests/test_release_identity.py`, `tools/tests/test_publish_release.py`, `tools/tests/test_workflow_contract.py`.

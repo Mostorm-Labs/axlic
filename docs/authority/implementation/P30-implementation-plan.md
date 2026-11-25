@@ -216,7 +216,7 @@ Does not include: 网络代码、通道协议、RPC 编排、回执上报（宿�
 
 Includes:
 
-- **流水线结构**：两个薄入口（`release.yml`、`test-publish.yml`）调用 `axlic-publish.yml`（发布身份校验 → 离线名单生成 → 完整构建 → 全量测试与既有 A1/A2 证据步骤 → 嵌入核对 → 打包 → 校验和复核后发布）；执行分支上的 `r1-windows.yml` 以双环境矩阵提供托管证据；
+- **流水线结构**：两个薄入口（`release.yml`、`test-publish.yml`）调用 `axlic-publish.yml`（发布身份校验 → 离线名单生成 → 完整构建 → 全量测试与既有 A2 证据步骤 → 嵌入核对 → 打包 → 校验和复核后发布）；执行分支上的 `r1-windows.yml` 以双环境矩阵提供托管证据；
 - **信任名单来源**：`client/keyring/license-test.pub.pem` 与 `license-prod.pub.pem` 提交在仓库内，`tools/build_trust_floor.py` 离线生成名单并核对指纹；每个产物只嵌入本环境的一把钥匙；
 - **版本与发布规则**：正式版由推送 `vX.Y.Z` 标签触发，标签版本必须等于该提交 `CMakeLists.txt` 的项目版本且提交须在 `main` 上；测试版版本为 `<项目版本>-test.<yyyyMMdd>.<run_number>`，发为 Pre-release；正式版支持手动指定已存在标签重发并覆盖同名附件；
 - **产物**：`axlic-<版本>-win-x64.zip`（`axlic.exe`、随包 VC++ 运行库、第三方声明与完整许可证文本、`SHA256SUMS.txt`、`build-manifest.json`）。
@@ -225,7 +225,7 @@ Does not include: 验签代码或名单格式改动、安装包/MSIX、Authentic
 
 **Positioning:** R1 产物是 **A8 之前的工程发布**，不是 A8 release Gate：不执行 EV-07 门禁；安装/升级契约、真实 TPM 资格认证与 EV-01～07 发布级证据仍归 AXL-V1-A8。
 
-**Evidence maturation:** EV-R1-01…06（P20 v4 §18 新证据类，blocking）；既有 A1/A2 证据步骤在待发布提交上复跑.
+**Evidence maturation:** EV-R1-01…06（P20 v4 §18 新证据类，blocking）；既有 A2 证据步骤在待发布提交上复跑.
 
 > **A3–A8 supersession note (D-106):** 下列 A3–A8 条目保留其设备侧语义（activation/refresh/assertion/offline/recovery/hardening 的本地半边），但其 server-side content（Node/TS 服务端、HTTPS transport adapter、PostgreSQL canonical store、fixture signer port 等）已随 D-106 撤销为本仓范围外，待宿主桥集成专项重新规划；在新的专项权威落地前，这些条目不授权任何 in-repo server/transport 实现。
 
@@ -344,7 +344,7 @@ Minimum matrix：
 - **Cross-language conformance:** C++ verifier/encoder-facing fixtures and TypeScript server encoder/verifier must consume the same checked-in EV-01 golden vectors；
 - formatting/lint/static checks：C++ formatting/static analysis + TypeScript formatting/lint/typecheck；
 - exact compiler/CMake/Node/package/dependency versions pinned by the owning P31 package/lockfiles；no floating `latest` in Gate evidence。
-- **Windows / MSVC publish pipeline (D-109, AXL-V1-R1):** 可复用流水线 `axlic-publish.yml`（发布身份校验、离线名单生成、完整构建与 A1/A2 证据、嵌入核对、打包；发布 job 在校验和复核后发布到 GitHub Releases）；入口 `release.yml`（推 `vX.Y.Z` 标签 + 手动重发）与 `test-publish.yml`（仅手动）；仅使用已按 commit 固定的 `actions/checkout`、`actions/setup-python`、`actions/upload-artifact`，其余用 runner 自带的 `gh`；工作流不使用任何 secret（自动 `GITHUB_TOKEN` 除外）。
+- **Windows / MSVC publish pipeline (D-109, AXL-V1-R1):** 可复用流水线 `axlic-publish.yml`（发布身份校验、离线名单生成、完整构建与 A2 证据、嵌入核对、打包；发布 job 在校验和复核后发布到 GitHub Releases）；入口 `release.yml`（推 `vX.Y.Z` 标签 + 手动重发）与 `test-publish.yml`（仅手动）；仅使用已按 commit 固定的 `actions/checkout`、`actions/setup-python`、`actions/upload-artifact`，其余用 runner 自带的 `gh`；工作流不使用任何 secret（自动 `GITHUB_TOKEN` 除外）。
 
 Hosted Windows runner不能替代 EV-03 physical TPM qualification。
 
