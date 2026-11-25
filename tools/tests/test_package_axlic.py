@@ -16,19 +16,10 @@ import zipfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import package_axlic  # noqa: E402
+from keyring_fixtures import KEYRING, PROD_XY, TEST_XY, keyed_exe  # noqa: E402
 
-KEYRING = pathlib.Path(__file__).resolve().parents[2] / "client" / "keyring"
 REVISION = "a" * 40
 TOP = "axlic-0.1.0-win-x64"
-
-TEST_XY = (
-    "d7027588352422870b83a9a154ba0aaf105b8b5c191bf5a138562b369428"
-    "8676e11271cf055e03e452a45448e825ec125bec1eea94fc06ae6e4d996ec6fac4d7"
-)
-PROD_XY = (
-    "b3cae3d4a15f2e81719b9373b1b37a7050d829f563354868f5b98063bd98608"
-    "ce32d037297fbf79e94ee9e2b78b6be25ca692d234382ac731f70ea065e397de0"
-)
 
 DUMPBIN_OUTPUT = """Dump of file axlic.exe
 
@@ -60,26 +51,6 @@ CRT_CONTENT = {
     "vcruntime140.dll": b"fake vcruntime140",
     "vcruntime140_1.dll": b"fake vcruntime140_1",
 }
-
-
-def floor_document(key_id: str, xy: str) -> str:
-    """The canonical single-entry document, written out by hand."""
-    return (
-        "{\n"
-        '  "format": "axlic-trust-floor",\n'
-        '  "version": 1,\n'
-        '  "keys": [\n'
-        "    {\n"
-        f'      "key_id": "{key_id}",\n'
-        f'      "public_key_xy_hex": "{xy}"\n'
-        "    }\n"
-        "  ]\n"
-        "}\n"
-    )
-
-
-def keyed_exe(key_id: str = "license-prod", xy: str = PROD_XY) -> bytes:
-    return b"MZ" + bytes(64) + floor_document(key_id, xy).encode() + bytes(64)
 
 
 def digest(data: bytes) -> str:
