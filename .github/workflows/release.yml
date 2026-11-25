@@ -29,4 +29,5 @@ jobs:
     with:
       environment: prod
       ref: ${{ inputs.tag || github.ref_name }}
-      publish: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
+      # Always a boolean: anything but an explicit true keeps the run a rehearsal.
+      publish: ${{ github.event_name != 'workflow_dispatch' || inputs.publish == true }}
