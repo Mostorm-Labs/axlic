@@ -1,0 +1,32 @@
+name: Release Windows
+
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing vX.Y.Z tag to rebuild and re-publish
+        type: string
+        required: true
+      publish:
+        description: Publish to GitHub Releases (false only builds, tests and packages the tag)
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    uses: ./.github/workflows/axlic-publish.yml
+    with:
+      environment: prod
+      ref: ${{ inputs.tag || github.ref_name }}
+      publish: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}

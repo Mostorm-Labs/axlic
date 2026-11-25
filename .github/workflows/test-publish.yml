@@ -1,0 +1,21 @@
+name: Test publish Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit to build (default main)
+        type: string
+        default: main
+        required: false
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  test-publish:
+    uses: ./.github/workflows/axlic-publish.yml
+    with:
+      environment: test
+      ref: ${{ inputs.ref || 'main' }}

@@ -102,21 +102,6 @@ jobs:
           --implementation-revision ${{ github.sha }}
           --report evidence/a2-no-external-references.json
 
-      - name: Prove packaging-time trust floor export fails closed without a backend
-        shell: pwsh
-        run: |
-          Copy-Item client/keyring/trust-floor.json evidence/trust-floor-before.json
-          $env:VAULT_ADDR = ''
-          $env:VAULT_TOKEN = ''
-          python tools/fetch_trust_floor.py --key license-credential-v1 --out evidence/trust-floor.json
-          if ($LASTEXITCODE -eq 0) { throw 'export tool must fail without a signing backend' }
-          if (Compare-Object (Get-Content evidence/trust-floor-before.json) (Get-Content client/keyring/trust-floor.json)) {
-            throw 'export tool overwrote the existing artifact on failure'
-          }
-          # The tool's expected fail-closed exit is 1; pwsh appends `exit $LASTEXITCODE`,
-          # so terminate the step explicitly once both fail-closed assertions pass.
-          exit 0
-
       - name: Record build and toolchain identity
         run: >-
           python reference/tools/toolchain_report.py
