@@ -259,6 +259,11 @@ class StagePackageTests(PackageTestCase):
         with self.assertRaisesRegex(package_axlic.PackageError, "kernel32.dll"):
             Fixture(self.root / "implausible", dumpbin_output=output).stage()
 
+    def test_a_revision_label_with_whitespace_fails_closed(self):
+        for revision in ("", "a b", "a\tb"):
+            with self.subTest(revision=revision), self.assertRaisesRegex(package_axlic.PackageError, "source revision"):
+                self.fixture.stage(revision=revision)
+
     def test_version_label_cannot_escape_the_package_name(self):
         for version in ("0.1.0/../evil", "0.1.0 extra", "", "0.1.0\\evil"):
             with self.subTest(version=version), self.assertRaises(package_axlic.PackageError):
@@ -490,6 +495,39 @@ class VerifyZipTests(PackageTestCase):
             f"{digest(tampered.read_bytes())}  {tampered.name}\n", encoding="utf-8", newline="\n"
         )
         with self.assertRaisesRegex(package_axlic.PackageError, "not a VC\\+\\+ runtime DLL.*evil\\.dll"):
+            package_axlic.verify_zip(tampered, "prod", KEYRING)
+
+    def test_verify_rejects_a_manifest_whose_version_disagrees_with_the_package(self):
+        # The package is named 0.1.0 inside and out; only the manifest claims
+        # another version.
+        zip_path = self.fixture.stage()
+        tampered = self.root / "tampered" / zip_path.name
+        tampered.parent.mkdir()
+        with zipfile.ZipFile(zip_path) as archive:
+            manifest = json.loads(archive.read(f"{TOP}/build-manifest.json"))
+        manifest["axlic_version"] = "9.9.9"
+        rewrite_zip(
+            zip_path, tampered,
+            replace={f"{TOP}/build-manifest.json": (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode()},
+        )
+        with self.assertRaisesRegex(package_axlic.PackageError, "does not match its manifest version"):
+            package_axlic.verify_zip(tampered, "prod", KEYRING)
+
+    def test_verify_names_a_manifest_of_another_environment(self):
+        # The executable embeds the right key and the package is asked for as
+        # "prod"; only the manifest's environment is wrong, and the manifest
+        # check must be the one to say so.
+        zip_path = self.fixture.stage()
+        tampered = self.root / "tampered" / zip_path.name
+        tampered.parent.mkdir()
+        with zipfile.ZipFile(zip_path) as archive:
+            manifest = json.loads(archive.read(f"{TOP}/build-manifest.json"))
+        manifest["environment"] = "test"
+        rewrite_zip(
+            zip_path, tampered,
+            replace={f"{TOP}/build-manifest.json": (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode()},
+        )
+        with self.assertRaisesRegex(package_axlic.PackageError, "built for environment 'test', not 'prod'"):
             package_axlic.verify_zip(tampered, "prod", KEYRING)
 
     def test_verify_detects_a_swapped_executable(self):

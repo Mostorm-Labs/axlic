@@ -206,6 +206,16 @@ class PublishReleaseTests(unittest.TestCase):
             self.publish(gh, "test", dist=self.dist["prod"])
         self.assertEqual(gh.calls, [])
 
+    def test_publish_refuses_a_package_of_the_other_environment_under_matching_labels(self):
+        # Version and revision match the production package; only the channel
+        # differs, and nothing may reach gh.
+        gh = FakeGh()
+        with self.assertRaisesRegex(publish_release.PublishError, "environment"):
+            publish_release.publish_release(
+                gh, "test", f"v{PROD_VERSION}", PROD_VERSION, REVISION, self.dist["prod"], repository=REPOSITORY
+            )
+        self.assertEqual(gh.calls, [])
+
     def test_unknown_environment_fails(self):
         gh = FakeGh()
         with self.assertRaises(publish_release.PublishError):

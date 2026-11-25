@@ -14,16 +14,11 @@ workflow binds the environment and grants the pipeline declares.
 
 from __future__ import annotations
 
-import os
 import pathlib
 import re
 import unittest
 
-# The mutation check for these tests points this at a mutated copy.
-WORKFLOWS = pathlib.Path(
-    os.environ.get("AXLIC_WORKFLOWS_DIR")
-    or pathlib.Path(__file__).resolve().parents[2] / ".github" / "workflows"
-)
+WORKFLOWS = pathlib.Path(__file__).resolve().parents[2] / ".github" / "workflows"
 PIPELINE = "axlic-publish.yml"
 ENTRY_WORKFLOWS = ("release.yml", "test-publish.yml", "r1-windows.yml")
 R1_WORKFLOWS = (PIPELINE, *ENTRY_WORKFLOWS)
@@ -224,6 +219,59 @@ class PipelineInvariantTests(unittest.TestCase):
         first = next(iter(steps(pipeline_job("build")).values()))
         self.assertIn("actions/checkout@", first)
         self.assertIn("fetch-depth: 0", first)
+        # The publish job verifies with the commit the build job built, never
+        # the ref it was named by: a branch can move between the two checkouts.
+        publish_checkout = next(step for step in steps(pipeline_job("publish")).values() if "actions/checkout@" in step)
+        self.assertIn("          ref: ${{ needs.build.outputs.revision }}", publish_checkout.splitlines())
+
+    def test_the_pipeline_is_call_only(self):
+        self.assertEqual(keys(block(workflow(PIPELINE), "on", 0), 2), ["workflow_call"])
+
+    def test_publish_reverifies_the_download_before_publishing(self):
+        publish = steps(pipeline_job("publish"))
+        names = list(publish)
+        download, reverify, publish_step = (
+            names.index("Download the package built by this run"),
+            names.index("Re-verify the downloaded package"),
+            names.index("Publish or re-publish the release"),
+        )
+        self.assertLess(download, reverify)
+        self.assertLess(reverify, publish_step)
+        self.assertRegex(publish["Re-verify the downloaded package"], r"tools/package_axlic\.py verify")
+        self.assertRegex(publish["Publish or re-publish the release"], r"tools/publish_release\.py")
+
+    def test_build_runs_every_evidence_step_and_none_is_neutralised(self):
+        build = steps(pipeline_job("build"))
+        names = list(build)
+        for step in (
+            "Run frozen unit and process suite",
+            "Produce A2 library-plane CLI contract report",
+            "Verify A2 install vectors regenerate deterministically",
+            "Independent canonical and crypto cross-check",
+            "Produce inherited A0 CLI report",
+            "Prove inherited A0 offline boundary",
+            "Prove keyed production binary offline boundary",
+            "Prove deliverables contain no external repository references",
+            "Prove the binary embeds only this environment's key",
+            "Record build and toolchain identity",
+            "Package the keyed executable",
+        ):
+            self.assertIn(step, names, step)
+        # A step is evidence only while it can fail the job.
+        self.assertIn("ctest --test-dir build", build["Run frozen unit and process suite"])
+        self.assertNotIn("exit 0", build["Run frozen unit and process suite"])
+        self.assertIn(
+            "-DAXLIC_TRUST_FLOOR_FILE=", build["Configure x64 Release with the keyed trust floor"]
+        )
+        self.assertIn(
+            "--toolchain-report evidence/build-toolchain.json", build["Package the keyed executable"]
+        )
+
+    def test_the_token_is_named_exactly_where_gh_is_called(self):
+        # Twice in the whole pipeline: the download step and the publish step.
+        # A job-level or workflow-level env would hand it to every step.
+        self.assertEqual(workflow(PIPELINE).count("GH_TOKEN"), 2)
+        self.assertEqual(workflow(PIPELINE).count("github.token"), 2)
 
     def test_the_publish_job_needs_the_build_and_runs_only_when_publishing(self):
         publish = pipeline_job("publish")
@@ -240,6 +288,10 @@ class EntryWorkflowInvariantTests(unittest.TestCase):
         # never turn into a production release by a malformed input.
         self.assertIn("      publish: ${{ github.event_name != 'workflow_dispatch' || inputs.publish == true }}", lines)
         self.assertEqual(keys(block(workflow("release.yml"), "on", 0), 2), ["push", "workflow_dispatch"])
+        self.assertIn("      - v[0-9]+.[0-9]+.[0-9]+", workflow("release.yml").splitlines())
+        concurrency = block(workflow("release.yml"), "concurrency", 0)
+        self.assertRegex(concurrency, r"(?m)^  group: release-")
+        self.assertIn("  cancel-in-progress: false", concurrency.splitlines())
 
     def test_test_publish_binds_the_test_key_and_is_manual_only(self):
         self.assertIn("      environment: test", entry_job("test-publish.yml").splitlines())

@@ -193,10 +193,12 @@ jobs:
     env:
       AXLIC_CHANNEL_ENVIRONMENT: ${{ inputs.environment }}
     steps:
-      - name: Check out the publish ref for the verifying tooling
+      - name: Check out the built revision for the verifying tooling
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.ref }}
+          # The commit the build job built, never the ref it was named by:
+          # a branch can move between the two checkouts.
+          ref: ${{ needs.build.outputs.revision }}
           persist-credentials: false
 
       - name: Install frozen Python
