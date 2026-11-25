@@ -7,3 +7,5 @@ AxLicense A0 fetches the following dependencies at immutable Git commits:
 - Catch2, commit `8b08d4d79514f45f7e4ce2a607ac9c94e920d1bb`, Boost Software License 1.0. Test-only.
 
 Windows CNG/BCrypt and the Windows SDK are system components and are not redistributed by this repository.
+
+Release packages carry the Microsoft Visual C++ runtime libraries `msvcp140.dll`, `vcruntime140.dll` and `vcruntime140_1.dll` app-local, copied unmodified from the Redist directory of the pinned Visual Studio 2022 toolchain and redistributed under the Microsoft license terms that cover those files. The full license texts of QCBOR and nlohmann/json travel inside every package under `licenses/`.
