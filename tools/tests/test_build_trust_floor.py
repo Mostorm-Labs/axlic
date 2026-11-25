@@ -8,6 +8,7 @@ import contextlib
 import io
 import json
 import pathlib
+import shutil
 import sys
 import tempfile
 import unittest
@@ -68,6 +69,14 @@ class ParseSpkiPemTests(unittest.TestCase):
         with self.assertRaises(build_trust_floor.TrustFloorError):
             build_trust_floor.parse_spki_pem(pem(TEST_DER) + "trailing prose\n")
 
+    def test_parse_spki_pem_rejects_an_unterminated_block(self):
+        # A BEGIN marker without its END must be refused as a key error, not
+        # surface as a lookup failure.
+        with self.assertRaises(build_trust_floor.TrustFloorError):
+            build_trust_floor.parse_spki_pem(pem(TEST_DER).rsplit("-----END", 1)[0])
+        with self.assertRaises(build_trust_floor.TrustFloorError):
+            build_trust_floor.parse_spki_pem("-----END PUBLIC KEY-----\nAAAA\n")
+
     def test_parse_spki_pem_rejects_non_p256_or_compressed_point(self):
         wrong_prefix = P256_SPKI_PREFIX[:-1] + b"\xff"
         cases = {
@@ -105,19 +114,33 @@ class LoadKeysTests(unittest.TestCase):
     def test_load_keys_rejects_a_tampered_key_file(self):
         original = (build_trust_floor.KEYRING_DIR / "license-prod.pub.pem").read_text(encoding="utf-8")
         lines = original.splitlines()
-        first, last = next(index for index, line in enumerate(lines) if not line.startswith("-----")), -2
-        # Tampering the first body character breaks the DER structure; tampering
-        # inside the last body line keeps the structure and breaks the fingerprint.
-        for name, index, position in (("structure", first, 0), ("fingerprint", last, 20)):
+        body = [index for index, line in enumerate(lines) if line.strip() and not line.startswith("-----")]
+        # Tampering the first body character breaks the DER structure. Tampering
+        # inside the last body line keeps a well-formed P-256 point and changes
+        # only the key, so nothing but the pinned fingerprint can reject it.
+        cases = (
+            ("structure", body[0], 0, "uncompressed P-256"),
+            ("fingerprint", body[-1], 20, "does not match the fingerprint"),
+        )
+        for name, index, position, reason in cases:
             with self.subTest(case=name), tempfile.TemporaryDirectory() as directory:
                 keyring = pathlib.Path(directory)
                 line = lines[index]
                 replacement = ("A" if line[position] != "A" else "B") + line[position + 1:]
                 lines[index] = line[:position] + replacement
                 (keyring / "license-prod.pub.pem").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
-                with self.assertRaises(build_trust_floor.TrustFloorError):
+                with self.assertRaisesRegex(build_trust_floor.TrustFloorError, reason):
                     build_trust_floor.load_environment_keys(keyring, "prod")
                 lines[index] = line
+
+    def test_a_key_file_of_the_other_environment_is_rejected_by_its_fingerprint(self):
+        with tempfile.TemporaryDirectory() as directory:
+            keyring = pathlib.Path(directory)
+            # The test key saved under the production file name: well-formed and
+            # on the right curve, but not the production key.
+            shutil.copyfile(build_trust_floor.KEYRING_DIR / "license-test.pub.pem", keyring / "license-prod.pub.pem")
+            with self.assertRaisesRegex(build_trust_floor.TrustFloorError, "does not match the fingerprint.*license-prod"):
+                build_trust_floor.load_environment_keys(keyring, "prod")
 
     def test_load_keys_rejects_a_missing_key_file(self):
         with tempfile.TemporaryDirectory() as directory, self.assertRaises(build_trust_floor.TrustFloorError):
@@ -132,6 +155,15 @@ class LoadKeysTests(unittest.TestCase):
                     key = build_trust_floor.TrustKey(key_id, "key.pub.pem", TEST_FINGERPRINT)
                     with self.assertRaises(build_trust_floor.TrustFloorError):
                         build_trust_floor.load_keys(keyring, (key,))
+
+
+class RepositoryInvariantTests(unittest.TestCase):
+    def test_checked_in_default_floor_is_empty(self):
+        # A plain build compiles client/keyring/trust-floor.json into axlic.exe.
+        # It must stay the empty, fail-closed key set (D-109): a key belongs in a
+        # build only through tools/build_trust_floor.py and AXLIC_TRUST_FLOOR_FILE.
+        document = json.loads((build_trust_floor.KEYRING_DIR / "trust-floor.json").read_text(encoding="utf-8"))
+        self.assertEqual(document, {"format": "axlic-trust-floor", "version": 1, "keys": []})
 
 
 class DocumentTests(unittest.TestCase):
