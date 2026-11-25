@@ -66,6 +66,11 @@ def mapping_values(text: str) -> set[str]:
     }
 
 
+def list_items(text: str) -> list[str]:
+    """The items of a block sequence, in order."""
+    return [line.strip()[2:] for line in text.splitlines()[1:] if line.strip().startswith("- ")]
+
+
 def steps(job: str) -> dict[str, str]:
     """Step name -> step text, in the order the job runs them."""
     result: dict[str, str] = {}
@@ -192,8 +197,8 @@ class PipelineInvariantTests(unittest.TestCase):
         self.assertEqual(with_token, {"Download the package built by this run", "Publish or re-publish the release"})
         for name in ENTRY_WORKFLOWS:
             with self.subTest(workflow=name):
-                self.assertNotIn("GH_TOKEN", workflow(name))
-                self.assertNotIn("github.token", workflow(name))
+                for spelling in ("GH_TOKEN", "github.token", "GITHUB_TOKEN", "secrets."):
+                    self.assertNotIn(spelling, workflow(name))
 
     def test_identity_is_resolved_before_any_tool_is_installed_or_built(self):
         build = steps(pipeline_job("build"))
@@ -257,9 +262,21 @@ class PipelineInvariantTests(unittest.TestCase):
             "Package the keyed executable",
         ):
             self.assertIn(step, names, step)
-        # A step is evidence only while it can fail the job.
-        self.assertIn("ctest --test-dir build", build["Run frozen unit and process suite"])
-        self.assertNotIn("exit 0", build["Run frozen unit and process suite"])
+        # ...and each proves what its name says: the keyed production
+        # executable, not a test fixture, is what gets checked.
+        self.assertRegex(
+            build["Prove the binary embeds only this environment's key"],
+            r"tools/check_embedded_trust_floor\.py\s+--environment \$env:AXLIC_CHANNEL_ENVIRONMENT\s+--exe build/client/Release/axlic\.exe",
+        )
+        self.assertRegex(
+            build["Prove keyed production binary offline boundary"],
+            r"--exe build/client/Release/axlic\.exe[\s\S]*--expect-absent",
+        )
+        self.assertRegex(
+            build["Prove deliverables contain no external repository references"],
+            r"tools/check_external_references\.py",
+        )
+        self.assertRegex(build["Record build and toolchain identity"], r"toolchain_report\.py")
         self.assertIn(
             "-DAXLIC_TRUST_FLOOR_FILE=", build["Configure x64 Release with the keyed trust floor"]
         )
@@ -268,10 +285,37 @@ class PipelineInvariantTests(unittest.TestCase):
         )
 
     def test_the_token_is_named_exactly_where_gh_is_called(self):
-        # Twice in the whole pipeline: the download step and the publish step.
-        # A job-level or workflow-level env would hand it to every step.
-        self.assertEqual(workflow(PIPELINE).count("GH_TOKEN"), 2)
-        self.assertEqual(workflow(PIPELINE).count("github.token"), 2)
+        text = workflow(PIPELINE)
+        # Twice in the whole pipeline: the download step and the publish step,
+        # each as GH_TOKEN: ${{ github.token }}. A job-level or workflow-level
+        # env would hand it to every step, and gh honours GITHUB_TOKEN just
+        # the same, so no other spelling may appear anywhere.
+        self.assertEqual(text.count("GH_TOKEN"), 2)
+        self.assertEqual(text.count("github.token"), 2)
+        self.assertEqual(text.count("GITHUB_TOKEN"), 0)
+        self.assertEqual(text.count("secrets."), 0)
+
+    def test_no_step_is_disabled_or_allowed_to_fail(self):
+        # A step is evidence only while it can fail the job.
+        for job in ("build", "publish"):
+            for name, step in steps(pipeline_job(job)).items():
+                with self.subTest(job=job, step=name):
+                    self.assertNotRegex(step, r"(?m)^\s+if:")
+                    self.assertNotRegex(step, r"(?m)^\s+continue-on-error:")
+
+    def test_the_test_step_runs_exactly_the_frozen_suite(self):
+        # pwsh ends a step with the last exit code, so nothing may follow the
+        # ctest invocation, and the invocation may not select a subset of tests.
+        step = steps(pipeline_job("build"))["Run frozen unit and process suite"]
+        run = step.split("        run: |\n", 1)[1]
+        self.assertEqual(
+            [line.strip() for line in run.splitlines() if line.strip()],
+            [
+                "New-Item -ItemType Directory -Force evidence | Out-Null",
+                "$junit = Join-Path $PWD 'evidence/ctest.xml'",
+                "ctest --test-dir build -C Release --output-on-failure --output-junit $junit",
+            ],
+        )
 
     def test_the_publish_job_needs_the_build_and_runs_only_when_publishing(self):
         publish = pipeline_job("publish")
@@ -288,17 +332,23 @@ class EntryWorkflowInvariantTests(unittest.TestCase):
         # never turn into a production release by a malformed input.
         self.assertIn("      publish: ${{ github.event_name != 'workflow_dispatch' || inputs.publish == true }}", lines)
         self.assertEqual(keys(block(workflow("release.yml"), "on", 0), 2), ["push", "workflow_dispatch"])
-        self.assertIn("      - v[0-9]+.[0-9]+.[0-9]+", workflow("release.yml").splitlines())
-        concurrency = block(workflow("release.yml"), "concurrency", 0)
-        self.assertRegex(concurrency, r"(?m)^  group: release-")
-        self.assertIn("  cancel-in-progress: false", concurrency.splitlines())
+        tags = block(block(block(workflow("release.yml"), "on", 0), "push", 2), "tags", 4)
+        self.assertEqual(list_items(tags), ["v[0-9]+.[0-9]+.[0-9]+"])
+        # One run at a time per tag: a group that never collides is no limit.
+        concurrency = block(workflow("release.yml"), "concurrency", 0).splitlines()
+        self.assertIn("  group: release-${{ inputs.tag || github.ref_name }}", concurrency)
+        self.assertIn("  cancel-in-progress: false", concurrency)
 
     def test_test_publish_binds_the_test_key_and_is_manual_only(self):
         self.assertIn("      environment: test", entry_job("test-publish.yml").splitlines())
         self.assertEqual(keys(block(workflow("test-publish.yml"), "on", 0), 2), ["workflow_dispatch"])
 
     def test_the_evidence_workflow_never_publishes(self):
-        self.assertIn("      publish: false", entry_job("r1-windows.yml").splitlines())
+        job = entry_job("r1-windows.yml")
+        self.assertIn("      publish: false", job.splitlines())
+        # The hosted evidence is only complete with both environments.
+        matrix = block(block(job, "strategy", 4), "matrix", 6)
+        self.assertEqual(list_items(block(matrix, "environment", 8)), ["test", "prod"])
 
     def test_every_caller_grants_what_the_pipeline_declares(self):
         declared: set[str] = set()
