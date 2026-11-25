@@ -75,6 +75,19 @@ class ResolveIdentityTests(unittest.TestCase):
             release_identity.Identity(self.repo.main, "0.1.0", "v0.1.0", "0.1.0"),
         )
 
+    def test_prod_annotated_tag_on_main_resolves(self):
+        # Production tags are usually annotated: the identity must be the commit
+        # the tag points at, not the tag object.
+        self.repo.git("tag", "-a", "v0.1.0", "-m", "axlic 0.1.0")
+        identity = self.resolve("prod", "v0.1.0", True)
+        self.assertEqual(identity, release_identity.Identity(self.repo.main, "0.1.0", "v0.1.0", "0.1.0"))
+
+    def test_missing_main_ref_fails_closed(self):
+        self.repo.git("tag", "v0.1.0")
+        self.repo.git("update-ref", "-d", "refs/remotes/origin/main")
+        with self.assertRaisesRegex(release_identity.IdentityError, "not available"):
+            self.resolve("prod", "v0.1.0", True)
+
     def test_prod_tag_version_must_equal_project_version(self):
         self.repo.git("tag", "v0.2.0")
         for publish in (True, False):

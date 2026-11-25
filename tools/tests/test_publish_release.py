@@ -166,12 +166,20 @@ class PublishReleaseTests(unittest.TestCase):
                 self.assertEqual(len(gh.notes), 1)
 
     def test_prod_never_creates_tag(self):
+        # Neither creating (--target would) nor moving (--tag on edit would) a
+        # tag: a production re-publish touches assets and notes only.
         for releases in ((), (f"v{PROD_VERSION}",)):
             with self.subTest(existing=bool(releases)):
                 gh = FakeGh(releases=releases)
                 self.publish(gh, "prod")
                 for call in gh.calls:
                     self.assertNotIn("--target", call)
+                    self.assertNotIn("--tag", call)
+                if releases:
+                    self.assertEqual(
+                        {call[1] for call in gh.calls if call[0] == "release"}, {"view", "upload", "edit"}
+                    )
+                    self.assertIn("--clobber", gh.only("release", "upload"))
 
     def test_unexpected_dist_file_fails(self):
         (self.dist["prod"] / "stowaway.txt").write_text("x", encoding="utf-8")
