@@ -23,21 +23,27 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(qcbor)
 
-# Embedded trust floor: the checked-in packaging-time public-key artifact is
-# compiled into axlic_core via a generated source file. An empty key set is
-# the initial production state (fail-closed).
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/keyring/trust-floor.json" AXLIC_TRUST_FLOOR_DOCUMENT)
+# Embedded trust floor: the public-key document compiled into axlic_core via
+# a generated source file. The default is the checked-in empty document (an
+# empty key set is fail-closed); a keyed build points AXLIC_TRUST_FLOOR_FILE
+# at a document derived by tools/build_trust_floor.py from a committed key.
+set(AXLIC_TRUST_FLOOR_FILE "${CMAKE_CURRENT_SOURCE_DIR}/keyring/trust-floor.json"
+    CACHE FILEPATH "Trust-floor document compiled into axlic_core (absolute path)")
+get_filename_component(AXLIC_TRUST_FLOOR_FILE "${AXLIC_TRUST_FLOOR_FILE}" ABSOLUTE)
+file(READ "${AXLIC_TRUST_FLOOR_FILE}" AXLIC_TRUST_FLOOR_DOCUMENT)
 string(JSON AXLIC_TRUST_FLOOR_FORMAT ERROR_VARIABLE trust_floor_json_error GET "${AXLIC_TRUST_FLOOR_DOCUMENT}" format)
 if(trust_floor_json_error OR NOT AXLIC_TRUST_FLOOR_FORMAT STREQUAL "axlic-trust-floor")
-  message(FATAL_ERROR "client/keyring/trust-floor.json is not a valid axlic-trust-floor document: ${trust_floor_json_error}")
+  message(FATAL_ERROR "${AXLIC_TRUST_FLOOR_FILE} is not a valid axlic-trust-floor document: ${trust_floor_json_error}")
 endif()
 set(TRUST_FLOOR_JSON "${AXLIC_TRUST_FLOOR_DOCUMENT}")
 # Defense in depth: a key id containing the raw-string terminator would break
 # the generated source at compile time with a hard-to-diagnose error.
 string(FIND "${AXLIC_TRUST_FLOOR_DOCUMENT}" ")axlic" trust_floor_terminator_position)
 if(NOT trust_floor_terminator_position LESS 0)
-  message(FATAL_ERROR "client/keyring/trust-floor.json contains the raw-string terminator )axlic")
+  message(FATAL_ERROR "${AXLIC_TRUST_FLOOR_FILE} contains the raw-string terminator )axlic")
 endif()
+# The document is read at configure time, so a changed file must reconfigure.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${AXLIC_TRUST_FLOOR_FILE}")
 configure_file(
   src/core/embedded_trust_floor.cpp.in
   "${CMAKE_CURRENT_BINARY_DIR}/generated/embedded_trust_floor.cpp"
@@ -125,7 +131,11 @@ if(BUILD_TESTING)
   )
   target_link_libraries(axlic_unit_tests PRIVATE axlic_core Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
   target_compile_features(axlic_unit_tests PRIVATE cxx_std_20)
-  target_compile_definitions(axlic_unit_tests PRIVATE AXLIC_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+  file(TO_CMAKE_PATH "${AXLIC_TRUST_FLOOR_FILE}" AXLIC_TRUST_FLOOR_FILE_CMAKE_PATH)
+  target_compile_definitions(axlic_unit_tests PRIVATE
+    AXLIC_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+    AXLIC_TRUST_FLOOR_FILE="${AXLIC_TRUST_FLOOR_FILE_CMAKE_PATH}"
+  )
   axlic_enable_warnings(axlic_unit_tests)
 
   include(Catch)

@@ -127,11 +127,14 @@ TEST_CASE("malformed floor collapses to an empty keyring") {
   CHECK(read.keys.empty());
 }
 
-TEST_CASE("embedded floor parses as the checked-in artifact") {
+TEST_CASE("embedded floor is the configured trust-floor document and parses") {
+  std::ifstream stream(std::filesystem::path(AXLIC_TRUST_FLOOR_FILE), std::ios::binary);
+  REQUIRE(stream.is_open());
+  const std::string document{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+  REQUIRE(std::string(axlic::core::embedded_trust_floor_json()) == document);
   const auto parsed = axlic::core::parse_trust_keyring_document(
       axlic::core::embedded_trust_floor_json(), "axlic-trust-floor");
   REQUIRE(parsed.has_value());
-  CHECK(parsed->empty());
 }
 
 TEST_CASE("key ids beyond the size bound are rejected") {

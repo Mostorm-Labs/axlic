@@ -5,8 +5,9 @@
 namespace axlic::core {
 namespace {
 
-// Generated at configure time from client/keyring/trust-floor.json.
-// Key ids come from fetch_trust_floor.py, which restricts them to
+// Generated at configure time from the trust-floor document named by
+// AXLIC_TRUST_FLOOR_FILE (default: client/keyring/trust-floor.json). Key ids
+// are constants in tools/build_trust_floor.py, which keeps them to
 // [A-Za-z0-9][A-Za-z0-9._-] so the JSON can never contain the ")axlic"
 // raw-string terminator; CMake additionally fails configure on any such
 // occurrence in the document.
