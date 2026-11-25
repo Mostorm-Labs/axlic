@@ -338,7 +338,9 @@ class ImportTests(unittest.TestCase):
             with self.assertRaisesRegex(package_axlic.PackageError, "Microsoft.VC14"):
                 package_axlic.locate_crt_dir(dumpbin)
             matching.mkdir(parents=True)
-            self.assertEqual(package_axlic.locate_crt_dir(dumpbin), matching)
+            # locate_crt_dir resolves the compiler path (GitHub runners hand out
+            # 8.3 short names for the temp directory), so expect a resolved path.
+            self.assertEqual(package_axlic.locate_crt_dir(dumpbin), matching.resolve())
             (matching.parent / "Microsoft.VC145.CRT").mkdir()
             with self.assertRaisesRegex(package_axlic.PackageError, "exactly one"):
                 package_axlic.locate_crt_dir(dumpbin)
@@ -357,7 +359,7 @@ class ImportTests(unittest.TestCase):
                 package_axlic.locate_crt_dir(dumpbin)
             same_line = redist / "14.44.35112" / "x64" / "Microsoft.VC143.CRT"
             same_line.mkdir(parents=True)
-            self.assertEqual(package_axlic.locate_crt_dir(dumpbin), same_line)
+            self.assertEqual(package_axlic.locate_crt_dir(dumpbin), same_line.resolve())
             (same_line.parent / "Microsoft.VC145.CRT").mkdir()
             with self.assertRaisesRegex(package_axlic.PackageError, "exactly one"):
                 package_axlic.locate_crt_dir(dumpbin)
