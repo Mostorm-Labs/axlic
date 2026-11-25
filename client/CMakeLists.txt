@@ -143,6 +143,11 @@ if(BUILD_TESTING)
 
   find_package(Python3 COMPONENTS Interpreter REQUIRED)
   add_test(
+    NAME publish_tooling_unit_tests
+    COMMAND ${Python3_EXECUTABLE} -m unittest discover -s ${PROJECT_SOURCE_DIR}/tools/tests -p "test_*.py"
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  )
+  add_test(
     NAME a0_cli_contract
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_cli.py
       --exe $<TARGET_FILE:axlic_a0_fixture_cli>
