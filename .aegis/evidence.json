@@ -91,6 +91,9 @@
     {"id":"EV-GIT-A2-RESULT","status":"available","kind":"repository-revision","ref":"466175df7252bf75f1f888ee498bb9b80fb09056"},
     {"id":"EV-GIT-A2-INTEGRATION","status":"available","kind":"repository-revision","ref":"ed76d7d2bbe45f2bbb281412a3b868022ccb9223"},
     {"id":"EV-A2-HOSTED-RERUN","status":"available","kind":"gate-evidence","ref":"run 45349180130/job 138291039775@4fdf2b3e97ea239bf4e63ced1ee71c45cedcd63a (D-108 hosted rerun, all frozen blocking evidence steps green)"},
-    {"id":"EV-GIT-A2-INTEGRATION-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/implementation/A2/repository-integration-closure.md"}
+    {"id":"EV-GIT-A2-INTEGRATION-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/implementation/A2/repository-integration-closure.md"},
+    {"id":"EV-GIT-R1-PACKAGE","status":"available","kind":"repository-artifact","ref":".aegis/packages/AXL-V1-R1-P31.md"},
+    {"id":"EV-R1-TEST-KEY-DIGEST","status":"available","kind":"external-evidence-digest","ref":"sha256:ca7795786820dd5d3d669fb3321b3e11bdafc1cce7d39c4fd59f52e7ef110aea (sha256 of the DER SubjectPublicKeyInfo in client/keyring/license-test.pub.pem, key_id license-test)"},
+    {"id":"EV-R1-PROD-KEY-DIGEST","status":"available","kind":"external-evidence-digest","ref":"sha256:58bb4787245691066105914d20ff3da5da2cb8677b13e943a40f6a73bcc277a8 (sha256 of the DER SubjectPublicKeyInfo in client/keyring/license-prod.pub.pem, key_id license-prod)"}
   ]
 }

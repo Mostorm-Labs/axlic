@@ -3,7 +3,8 @@
   "gate_contracts": [
     {"id":"AXL-V1-A0-P34","scope":"axlicense/A0","authority_ids":["AXL-V1-P20","AXL-V1-P30","AXL-V1-A0-P31"]},
     {"id":"AXL-V1-A1-P34","scope":"axlicense/A1","authority_ids":["AXL-V1-P20","AXL-V1-P30","AXL-V1-A1-P31"]},
-    {"id":"AXL-V1-A2-P34","scope":"axlicense/A2","authority_ids":["AXL-V1-P20","AXL-V1-P30","AXL-V1-A2-P31"]}
+    {"id":"AXL-V1-A2-P34","scope":"axlicense/A2","authority_ids":["AXL-V1-P20","AXL-V1-P30","AXL-V1-A2-P31"]},
+    {"id":"AXL-V1-R1-P34","scope":"axlicense/R1","authority_ids":["AXL-V1-P20","AXL-V1-P30","AXL-V1-R1-P31"]}
   ],
   "gate_decisions": [
     {"id":"D-093","gate_id":"AXL-V1-A0-P34","verdict":"BLOCKED_IMPLEMENTATION","status":"historical","evidence_ids":["EV-NOTION-A0-P34-B1"]},
