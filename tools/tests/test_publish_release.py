@@ -28,7 +28,7 @@ REPOSITORY = "example/axlic"
 REVISION = "a" * 40
 TEST_VERSION = "0.1.0-test.20261125.7"
 PROD_VERSION = "0.1.0"
-DUMPBIN_OUTPUT = "Dump of file axlic.exe\n\n  Image has the following dependencies:\n\n    KERNEL32.dll\n    MSVCP140.dll\n\n  Summary\n"
+DUMPBIN_OUTPUT = "Dump of file axlic.exe\n\n  Image has the following dependencies:\n\n    KERNEL32.dll\n\n  Summary\n"
 GENERATED_NOTES = "## What's Changed\n- nothing yet\n"
 
 
@@ -58,6 +58,7 @@ def build_dist(root: pathlib.Path, environment: str, version: str) -> pathlib.Pa
         revision=REVISION,
         out_dir=out,
         keyring_dir=KEYRING,
+        imports_of=lambda dll: [],
     )
     return out
 

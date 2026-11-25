@@ -2,7 +2,8 @@
 """EV-R1-04: package axlic.exe as a self-contained, verifiable zip.
 
 `package` assembles `axlic-<version>-win-x64.zip`: the executable, the app-local
-VC++ runtime DLLs it imports, the third-party notices with full license texts,
+VC++ runtime DLLs it needs (the ones it imports and, transitively, the runtime
+DLLs those import), the third-party notices with full license texts,
 SHA256SUMS.txt and build-manifest.json, with the zip's own `.sha256` alongside.
 Every import must be a Windows component or one of the bundled runtime DLLs;
 anything else fails the package, because the binary would start on the build
@@ -47,6 +48,7 @@ OS_DLLS = frozenset(
 OS_DLL_PATTERN = re.compile(r"api-ms-win-crt-[a-z0-9-]+\.dll")
 CRT_DLLS = frozenset({"msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll"})
 CRT_DIR_GLOB = "Microsoft.VC14*.CRT"
+DEPENDENCIES_HEADER = "Image has the following dependencies:"
 
 LICENSE_SOURCES = {
     "licenses/QCBOR-LICENSE": ("qcbor-src", "LICENSE"),
@@ -69,17 +71,23 @@ def sha256(data: bytes) -> str:
 
 
 def parse_dependencies(dumpbin_output: str) -> list[str]:
-    """DLL names listed by `dumpbin /DEPENDENTS`, lowercased, in order."""
+    """DLL names of the first dependency list of `dumpbin /DEPENDENTS`, lowercased, in order."""
     names: list[str] = []
     inside = False
     for line in dumpbin_output.splitlines():
         stripped = line.strip()
-        if stripped == "Image has the following dependencies:":
-            inside = True
-        elif inside and stripped == "Summary":
+        if not inside:
+            if stripped == DEPENDENCIES_HEADER:
+                inside = True
+            continue
+        # A delay-load list follows under its own heading; only the plain
+        # import list says what must sit next to the executable.
+        if stripped == "Summary" or stripped.startswith("Image has the following"):
             break
-        elif inside and stripped:
+        if stripped:
             names.append(stripped.lower())
+    if not inside:
+        raise PackageError("dumpbin printed no dependency list; is the file a PE image?")
     return names
 
 
@@ -90,6 +98,19 @@ def classify_imports(names: list[str]) -> tuple[list[str], list[str], list[str]]
     crt_dlls = [name for name in unique if name in CRT_DLLS]
     unresolved = [name for name in unique if name not in os_dlls and name not in crt_dlls]
     return os_dlls, crt_dlls, unresolved
+
+
+def crt_closure(direct: list[str], imports_of) -> list[str]:
+    """The runtime DLLs a package needs: the imported ones plus, transitively, the runtime DLLs those import."""
+    needed: set[str] = set()
+    pending = list(direct)
+    while pending:
+        dll = pending.pop()
+        if dll in needed:
+            continue
+        needed.add(dll)
+        pending += [name for name in imports_of(dll) if name in CRT_DLLS]
+    return sorted(needed)
 
 def locate_dumpbin(build_dir: pathlib.Path) -> pathlib.Path:
     metadata_files = list((build_dir / "CMakeFiles").glob("*/CMakeCXXCompiler.cmake"))
@@ -113,11 +134,21 @@ def locate_crt_dir(dumpbin: pathlib.Path, override: pathlib.Path | None = None) 
     parents = dumpbin.resolve().parents
     if len(parents) < 7 or parents[4].name != "MSVC" or parents[5].name != "Tools" or parents[6].name != "VC":
         raise PackageError(f"unexpected compiler layout around {dumpbin}")
-    redist = parents[6] / "Redist" / "MSVC" / parents[3].name / "x64"
-    candidates = sorted(redist.glob(CRT_DIR_GLOB)) if redist.is_dir() else []
+    redist = parents[6] / "Redist" / "MSVC"
+    # The redist directory of a toolset line is not always named like the
+    # compiler directory (v143 14.44 ships Tools/MSVC/14.44.35207 beside
+    # Redist/MSVC/14.44.35112), so fall back to the line's major.minor.
+    tools_version = parents[3].name
+    if (redist / tools_version).is_dir():
+        versions = [tools_version]
+    else:
+        versions = sorted(path.name for path in redist.glob(f"{tools_version.rsplit('.', 1)[0]}.*") if path.is_dir())
+    candidates = [
+        candidate for version in versions for candidate in sorted((redist / version / "x64").glob(CRT_DIR_GLOB))
+    ]
     if len(candidates) != 1:
         raise PackageError(
-            f"expected exactly one {CRT_DIR_GLOB} directory under {redist}, found "
+            f"expected exactly one {CRT_DIR_GLOB} directory for toolset {tools_version} under {redist}, found "
             f"{[candidate.name for candidate in candidates]}; pass --crt-dir"
         )
     return candidates[0]
@@ -152,19 +183,26 @@ def stage_package(
     revision: str,
     out_dir: pathlib.Path,
     keyring_dir: pathlib.Path,
+    imports_of,
     toolchain: dict | None = None,
 ) -> pathlib.Path:
-    """Assemble the package and return the zip path; nothing is written on failure."""
+    """Assemble the package and return the zip path; nothing is written on failure.
+
+    imports_of(dll) returns the DLL names a runtime DLL imports itself."""
     if not VERSION_PATTERN.fullmatch(version):
         raise PackageError(f"invalid version label {version!r}")
     if not revision or any(character.isspace() for character in revision):
         raise PackageError(f"invalid source revision {revision!r}")
-    os_dlls, crt_dlls, unresolved = classify_imports(parse_dependencies(dumpbin_output))
+    imports = parse_dependencies(dumpbin_output)
+    if "kernel32.dll" not in imports:
+        raise PackageError("the dependency list does not name kernel32.dll; dumpbin output is not plausible")
+    os_dlls, direct_crt, unresolved = classify_imports(imports)
     if unresolved:
         raise PackageError(
             "unresolved imports (neither Windows components nor the app-local VC++ runtime): "
             + ", ".join(unresolved)
         )
+    crt_dlls = crt_closure(direct_crt, imports_of)
     try:
         check_embedded_trust_floor.check_exe(exe.read_bytes(), environment, keyring_dir)
         trust_floor = build_trust_floor.load_environment_keys(keyring_dir, environment)
@@ -242,6 +280,9 @@ def verify_zip(zip_path: pathlib.Path, environment: str, keyring_dir: pathlib.Pa
                     f"the package was built for environment {manifest['environment']!r}, not {environment!r}"
                 )
             dlls = sorted(manifest["vc_runtime"]["dlls"])
+            foreign = sorted(set(dlls) - CRT_DLLS)
+            if foreign:
+                raise PackageError(f"the manifest declares files that are not a VC++ runtime DLL: {foreign}")
             payload_paths = ["axlic.exe", *dlls, NOTICES, *LICENSE_SOURCES]
             expected = [*(f"{top}/{path}" for path in payload_paths), f"{top}/{SUMS_NAME}", f"{top}/{MANIFEST_NAME}"]
             if names != expected:
@@ -296,13 +337,15 @@ def main(argv: list[str]) -> int:
     try:
         if args.command == "package":
             dumpbin = locate_dumpbin(args.build_dir)
+            crt_dir = locate_crt_dir(dumpbin, args.crt_dir)
             toolchain = (
                 json.loads(args.toolchain_report.read_text(encoding="utf-8")) if args.toolchain_report else None
             )
             zip_path = stage_package(
                 exe=args.exe,
                 dumpbin_output=read_dependencies(args.exe, dumpbin),
-                crt_dir=locate_crt_dir(dumpbin, args.crt_dir),
+                crt_dir=crt_dir,
+                imports_of=lambda dll: parse_dependencies(read_dependencies(crt_dir / dll, dumpbin)),
                 deps_dir=args.deps_dir,
                 notices=args.notices,
                 environment=args.environment,

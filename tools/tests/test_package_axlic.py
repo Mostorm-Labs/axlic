@@ -20,6 +20,8 @@ from keyring_fixtures import KEYRING, PROD_XY, TEST_XY, keyed_exe  # noqa: E402
 
 REVISION = "a" * 40
 TOP = "axlic-0.1.0-win-x64"
+NOTICES = "THIRD_PARTY_NOTICES.md"
+LICENSE_PATHS = ("licenses/QCBOR-LICENSE", "licenses/nlohmann-json-LICENSE.MIT")
 
 DUMPBIN_OUTPUT = """Dump of file axlic.exe
 
@@ -50,6 +52,13 @@ CRT_CONTENT = {
     "msvcp140.dll": b"fake msvcp140",
     "vcruntime140.dll": b"fake vcruntime140",
     "vcruntime140_1.dll": b"fake vcruntime140_1",
+}
+# What each runtime DLL imports itself, as listed by dumpbin /DEPENDENTS on
+# the Microsoft.VC143.CRT files: the runtime DLLs depend on one another.
+CRT_IMPORTS = {
+    "msvcp140.dll": ["kernel32.dll", "vcruntime140.dll", "vcruntime140_1.dll"],
+    "vcruntime140.dll": ["kernel32.dll"],
+    "vcruntime140_1.dll": ["kernel32.dll", "vcruntime140.dll"],
 }
 
 
@@ -90,6 +99,7 @@ class Fixture:
             revision=REVISION,
             out_dir=self.out_dir,
             keyring_dir=KEYRING,
+            imports_of=CRT_IMPORTS.__getitem__,
         )
         arguments.update(overrides)
         return package_axlic.stage_package(**arguments)
@@ -217,13 +227,37 @@ class StagePackageTests(PackageTestCase):
             self.fixture.stage()
         self.assertFalse(self.zip_path.exists())
 
-    def test_only_imported_crt_dlls_are_bundled(self):
-        output = DUMPBIN_OUTPUT.replace("    VCRUNTIME140.dll\n", "").replace("    VCRUNTIME140_1.dll\n", "")
-        with zipfile.ZipFile(Fixture(self.root / "partial", dumpbin_output=output).stage()) as archive:
-            names = [pathlib.PurePosixPath(name).name for name in archive.namelist()]
-        self.assertIn("msvcp140.dll", names)
-        self.assertNotIn("vcruntime140.dll", names)
-        self.assertNotIn("vcruntime140_1.dll", names)
+    def test_runtime_dll_closure_is_bundled(self):
+        # (CRT DLLs the executable imports) -> (CRT DLLs the package must carry):
+        # the imported ones plus the runtime DLLs those import themselves.
+        cases = {
+            ("MSVCP140.dll",): ["msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll"],
+            ("VCRUNTIME140_1.dll",): ["vcruntime140.dll", "vcruntime140_1.dll"],
+            ("VCRUNTIME140.dll",): ["vcruntime140.dll"],
+            (): [],
+        }
+        for imported, bundled in cases.items():
+            with self.subTest(imported=imported):
+                output = DUMPBIN_OUTPUT
+                for name in ("MSVCP140.dll", "VCRUNTIME140.dll", "VCRUNTIME140_1.dll"):
+                    output = output.replace(f"    {name}\n", "")
+                output = output.replace("    ole32.dll\n", "    ole32.dll\n" + "".join(f"    {name}\n" for name in imported))
+                with zipfile.ZipFile(Fixture(self.root / ("-".join(imported) or "none"), dumpbin_output=output).stage()) as archive:
+                    names = [pathlib.PurePosixPath(name).name for name in archive.namelist()]
+                    manifest = json.loads(archive.read(f"{TOP}/build-manifest.json"))
+                self.assertEqual([name for name in names if name.endswith(".dll")], bundled)
+                self.assertEqual(manifest["vc_runtime"]["dlls"], bundled)
+
+    def test_dumpbin_output_without_a_dependency_list_fails_closed(self):
+        for output in ("", "Dump of file axlic.exe\n\nFile Type: EXECUTABLE IMAGE\n\n  Summary\n"):
+            with self.subTest(output=output), self.assertRaisesRegex(package_axlic.PackageError, "dependency list"):
+                Fixture(self.root / str(len(output)), dumpbin_output=output).stage()
+            self.assertFalse((self.root / str(len(output)) / "out" / f"{TOP}.zip").exists())
+
+    def test_an_implausible_dependency_list_fails_closed(self):
+        output = "  Image has the following dependencies:\n\n    SOMETHING.dll\n\n  Summary\n"
+        with self.assertRaisesRegex(package_axlic.PackageError, "kernel32.dll"):
+            Fixture(self.root / "implausible", dumpbin_output=output).stage()
 
     def test_version_label_cannot_escape_the_package_name(self):
         for version in ("0.1.0/../evil", "0.1.0 extra", "", "0.1.0\\evil"):
@@ -252,6 +286,18 @@ class ImportTests(unittest.TestCase):
                 "api-ms-win-crt-stdio-l1-1-0.dll", "api-ms-win-crt-runtime-l1-1-0.dll",
             ],
         )
+
+    def test_parse_dependencies_stops_at_the_first_list(self):
+        two_lists = DUMPBIN_OUTPUT.replace(
+            "  Summary\n", "    Image has the following delay load dependencies:\n\n    DELAYED.dll\n\n  Summary\n"
+        )
+        self.assertNotIn("delayed.dll", package_axlic.parse_dependencies(two_lists))
+        self.assertEqual(len(package_axlic.parse_dependencies(two_lists)), 12)
+
+    def test_parse_dependencies_requires_the_dependency_list(self):
+        for output in ("", "Dump of file axlic.exe\n\nFile Type: EXECUTABLE IMAGE\n\n  Summary\n", "garbage\n"):
+            with self.subTest(output=output), self.assertRaises(package_axlic.PackageError):
+                package_axlic.parse_dependencies(output)
 
     def test_classify_imports_splits_os_crt_and_unresolved(self):
         self.assertEqual(
@@ -297,6 +343,29 @@ class ImportTests(unittest.TestCase):
             with self.assertRaisesRegex(package_axlic.PackageError, "exactly one"):
                 package_axlic.locate_crt_dir(dumpbin)
             self.assertEqual(package_axlic.locate_crt_dir(dumpbin, old), old)
+
+    def test_locate_crt_dir_falls_back_to_the_toolset_line(self):
+        # v143 14.44 in the wild: Tools/MSVC/14.44.35207 but Redist/MSVC/14.44.35112.
+        with tempfile.TemporaryDirectory() as directory:
+            visual_studio = pathlib.Path(directory) / "VS" / "VC"
+            dumpbin = visual_studio / "Tools" / "MSVC" / "14.44.35207" / "bin" / "Hostx64" / "x64" / "dumpbin.exe"
+            dumpbin.parent.mkdir(parents=True)
+            redist = visual_studio / "Redist" / "MSVC"
+            older_line = redist / "14.43.00000" / "x64" / "Microsoft.VC143.CRT"
+            older_line.mkdir(parents=True)
+            with self.assertRaisesRegex(package_axlic.PackageError, "exactly one"):
+                package_axlic.locate_crt_dir(dumpbin)
+            same_line = redist / "14.44.35112" / "x64" / "Microsoft.VC143.CRT"
+            same_line.mkdir(parents=True)
+            self.assertEqual(package_axlic.locate_crt_dir(dumpbin), same_line)
+            (same_line.parent / "Microsoft.VC145.CRT").mkdir()
+            with self.assertRaisesRegex(package_axlic.PackageError, "exactly one"):
+                package_axlic.locate_crt_dir(dumpbin)
+            (same_line.parent / "Microsoft.VC145.CRT").rmdir()
+            (redist / "14.44.35208" / "x64" / "Microsoft.VC143.CRT").mkdir(parents=True)
+            with self.assertRaisesRegex(package_axlic.PackageError, "exactly one"):
+                package_axlic.locate_crt_dir(dumpbin)
+            self.assertEqual(package_axlic.locate_crt_dir(dumpbin, older_line), older_line)
 
 
 class VerifyZipTests(PackageTestCase):
@@ -354,6 +423,71 @@ class VerifyZipTests(PackageTestCase):
         tampered.parent.mkdir()
         rewrite_zip(zip_path, tampered, extra={f"{TOP}/extra.dll": b"stowaway"})
         with self.assertRaisesRegex(package_axlic.PackageError, "extra.dll"):
+            package_axlic.verify_zip(tampered, "prod", KEYRING)
+
+    def test_verify_detects_a_checksum_file_entry_mismatch(self):
+        # The member and the manifest agree; only the checksum file is wrong.
+        zip_path = self.fixture.stage()
+        tampered = self.root / "tampered" / zip_path.name
+        tampered.parent.mkdir()
+        wrong = "".join(
+            f"{'0' * 64 if name == 'axlic.exe' else digest(content)}  {name}\n"
+            for name, content in EXPECTED_PAYLOAD.items()
+        )
+        rewrite_zip(zip_path, tampered, replace={f"{TOP}/SHA256SUMS.txt": wrong.encode()})
+        with self.assertRaisesRegex(package_axlic.PackageError, "does not match SHA256SUMS.txt"):
+            package_axlic.verify_zip(tampered, "prod", KEYRING)
+
+    def test_verify_rejects_checksum_and_manifest_that_agree_on_an_extra_file(self):
+        zip_path = self.fixture.stage()
+        tampered = self.root / "tampered" / zip_path.name
+        tampered.parent.mkdir()
+        with zipfile.ZipFile(zip_path) as archive:
+            manifest = json.loads(archive.read(f"{TOP}/build-manifest.json"))
+            sums = archive.read(f"{TOP}/SHA256SUMS.txt").decode()
+        manifest["files"].append({"path": "extra.txt", "sha256": digest(b"stowaway"), "size": 9})
+        sums += f"{digest(b'stowaway')}  extra.txt\n"
+        rewrite_zip(
+            zip_path, tampered,
+            replace={
+                f"{TOP}/SHA256SUMS.txt": sums.encode(),
+                f"{TOP}/build-manifest.json": (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode(),
+            },
+        )
+        with self.assertRaisesRegex(package_axlic.PackageError, "exactly the payload files"):
+            package_axlic.verify_zip(tampered, "prod", KEYRING)
+
+    def test_verify_rejects_a_manifest_that_passes_a_dll_off_as_runtime(self):
+        # Every DLL beside axlic.exe must be one of the known runtime DLLs;
+        # listing it in the manifest, consistently everywhere, must not be enough.
+        zip_path = self.fixture.stage()
+        stowaway = b"not a runtime dll"
+        with zipfile.ZipFile(zip_path) as archive:
+            manifest = json.loads(archive.read(f"{TOP}/build-manifest.json"))
+            members = {name[len(TOP) + 1:]: archive.read(name) for name in archive.namelist()}
+        manifest["vc_runtime"]["dlls"] = ["evil.dll"]
+        manifest["files"] = [entry for entry in manifest["files"] if not entry["path"].endswith(".dll")]
+        files = [*manifest["files"][:1], {"path": "evil.dll", "sha256": digest(stowaway), "size": len(stowaway)}, *manifest["files"][1:]]
+        sums = "".join(f"{entry['sha256']}  {entry['path']}\n" for entry in files)
+        manifest["files"] = files
+        order = ["axlic.exe", "evil.dll", NOTICES, *LICENSE_PATHS, "SHA256SUMS.txt", "build-manifest.json"]
+        content = {
+            **members,
+            "evil.dll": stowaway,
+            "SHA256SUMS.txt": sums.encode(),
+            "build-manifest.json": (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode(),
+        }
+        tampered = self.root / "tampered" / zip_path.name
+        tampered.parent.mkdir()
+        with zipfile.ZipFile(tampered, "w") as rewritten:
+            for name in order:
+                info = zipfile.ZipInfo(f"{TOP}/{name}", date_time=(1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                rewritten.writestr(info, content[name])
+        tampered.with_name(tampered.name + ".sha256").write_text(
+            f"{digest(tampered.read_bytes())}  {tampered.name}\n", encoding="utf-8", newline="\n"
+        )
+        with self.assertRaisesRegex(package_axlic.PackageError, "not a VC\\+\\+ runtime DLL.*evil\\.dll"):
             package_axlic.verify_zip(tampered, "prod", KEYRING)
 
     def test_verify_detects_a_swapped_executable(self):
