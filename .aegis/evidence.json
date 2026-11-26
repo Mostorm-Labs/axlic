@@ -91,6 +91,14 @@
     {"id":"EV-GIT-A2-RESULT","status":"available","kind":"repository-revision","ref":"466175df7252bf75f1f888ee498bb9b80fb09056"},
     {"id":"EV-GIT-A2-INTEGRATION","status":"available","kind":"repository-revision","ref":"ed76d7d2bbe45f2bbb281412a3b868022ccb9223"},
     {"id":"EV-A2-HOSTED-RERUN","status":"available","kind":"gate-evidence","ref":"run 45349180130/job 138291039775@4fdf2b3e97ea239bf4e63ced1ee71c45cedcd63a (D-108 hosted rerun, all frozen blocking evidence steps green)"},
-    {"id":"EV-GIT-A2-INTEGRATION-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/implementation/A2/repository-integration-closure.md"}
+    {"id":"EV-GIT-A2-INTEGRATION-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/implementation/A2/repository-integration-closure.md"},
+    {"id":"EV-GIT-R1-PACKAGE","status":"available","kind":"repository-artifact","ref":".aegis/packages/AXL-V1-R1-P31.md"},
+    {"id":"EV-R1-TEST-KEY-DIGEST","status":"available","kind":"external-evidence-digest","ref":"sha256:ca7795786820dd5d3d669fb3321b3e11bdafc1cce7d39c4fd59f52e7ef110aea (sha256 of the DER SubjectPublicKeyInfo in client/keyring/license-test.pub.pem, key_id license-test)"},
+    {"id":"EV-R1-PROD-KEY-DIGEST","status":"available","kind":"external-evidence-digest","ref":"sha256:58bb4787245691066105914d20ff3da5da2cb8677b13e943a40f6a73bcc277a8 (sha256 of the DER SubjectPublicKeyInfo in client/keyring/license-prod.pub.pem, key_id license-prod)"},
+    {"id":"EV-GIT-R1-RESULT","status":"available","kind":"repository-revision","ref":"f9e8c2e96bfd9fff3a8c1fa89a8f3fa292546ecf"},
+    {"id":"EV-R1-HOSTED-RUN","status":"available","kind":"gate-evidence","ref":"run 45627517396/jobs 139251571153,139251570782@f9e8c2e96bfd9fff3a8c1fa89a8f3fa292546ecf (D-110 hosted dual-environment evidence on the frozen toolchain, publishing disabled, every build step green, ctest 102/102)"},
+    {"id":"EV-R1-HOSTED-PACKAGES","status":"available","kind":"gate-evidence","ref":"sha256:1ff0f37dfb37c7b3da6f950b259a7f75ea4c93471b11e99a117f16453d0ffa7a axlic-0.1.0-win-x64.zip; sha256:95ce283676bdf16f19bb6eb2a0e0cd1ecf3fe7e41c96e50c8e1439e2d8c36fa1 axlic-0.1.0-test.20261125.4-win-x64.zip (run 45627517396, both re-verified locally with tools/package_axlic.py verify)"},
+    {"id":"EV-R1-LOCAL-EVIDENCE","status":"available","kind":"gate-evidence","ref":"f9e8c2e local: 106 tooling unit and contract tests; ctest 102/102 on default, test-key and production-key builds; v143 14.44 toolset build; mutation checks over the tools and the workflow files (D-110)"},
+    {"id":"EV-R1-INDEPENDENT-REVIEWS","status":"available","kind":"gate-review","ref":"independent code review 81370f3..dd64060, P34 review 81370f3..60a5ede and incremental review of 055f630, all read-only (D-110; summarized in the decision log)"}
   ]
 }

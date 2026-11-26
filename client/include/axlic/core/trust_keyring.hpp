@@ -9,8 +9,9 @@
 
 namespace axlic::core {
 
-// Embedded production trust floor, generated at configure time from
-// client/keyring/trust-floor.json. The checked-in artifact starts empty:
+// Embedded production trust floor, generated at configure time from the
+// trust-floor document named by AXLIC_TRUST_FLOOR_FILE (default: the
+// checked-in client/keyring/trust-floor.json). The default starts empty:
 // an empty merged keyring is legal and fail-closed (nothing verifies).
 [[nodiscard]] std::string_view embedded_trust_floor_json() noexcept;
 

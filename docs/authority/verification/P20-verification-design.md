@@ -3,12 +3,12 @@ authority_id: AXL-V1-P20
 stage: P20
 scope: axlicense
 kind: verification-design
-version: "3"
+version: "4"
 status: current
 source_type: notion
 source_url: https://app.notion.com/p/3d94c57a590c81cb8b62c8391702d839
 migration_class: location-only
-semantic_change: "v3 (2026-11-23, D-106): added §17 A2 library-plane evidence classes (EV-A2-01…05 + corroborative walkthrough) registering the verification-first contract for the platform-integration library plane; no change to the frozen crypto profile, structural numeric bounds (§3.5) or the seven A0/A1 evidence families"
+semantic_change: "v4 (2026-11-25, D-109): §17 EV-A2-05 and its corroborative item no longer reference the packaging-time export tool (removed; the floor is derived offline from the public keys committed in the repository); added §18 R1 publish-pipeline evidence classes (EV-R1-01…06 blocking + corroborative items); no change to the frozen crypto profile, structural numeric bounds (§3.5), the seven A0/A1 evidence families or the §17 invariants; clarified in the same version under D-110 after the R1 freeze (wording ratified there): EV-R1-04 names the runtime closure, EV-R1-02 the empty default document, EV-R1-06 the token scope, EV-R1-01 the existing A2 evidence steps. v3 (2026-11-23, D-106): added §17 A2 library-plane evidence classes (EV-A2-01…05 + corroborative walkthrough) registering the verification-first contract for the platform-integration library plane; no change to the frozen crypto profile, structural numeric bounds (§3.5) or the seven A0/A1 evidence families"
 ---
 
 # 20 — P20 Verification Design — AxLicense V1 v0.1
@@ -451,13 +451,79 @@ This section registers the verification-first contract for the A2 platform-integ
 
 ### EV-A2-05 — Zero-regression + offline boundary (blocking)
 
-- **Invariants:** all pre-existing suites stay green; the binary imports no network modules; the packaging-time public-key export tool is not part of the binary.
+- **Invariants:** all pre-existing suites stay green; the binary imports no network modules; no packaging tooling is part of the binary.
 - **Exact execution:** full `ctest` including the existing offline-boundary import scan; grep for absence of external repository references in deliverables.
 
 ### Corroborative (non-blocking)
 
-- Manual end-to-end walkthrough on one Windows machine: `status` (absent) → `identity` → `device-register` (identity_value self-report) → `adopt` → independent-reference-signed fixture `install --policy-version` → `status`/`entitlement`/`held-version` correct; lower-version fixture rejected stale; packaging-time export tool fails closed without a signing backend and never overwrites the existing floor artifact.
+- Manual end-to-end walkthrough on one Windows machine: `status` (absent) → `identity` → `device-register` (identity_value self-report) → `adopt` → independent-reference-signed fixture `install --policy-version` → `status`/`entitlement`/`held-version` correct; lower-version fixture rejected stale.
 
 ### A2 evidence-family note
 
 EV-A2-01…05 are the blocking completion face for the A2 `EXECUTION_CLOSURE_CONTRACT`; they compose with, and do not replace, the seven frozen families (EV-01/02/04 subsume overlapping A2 concerns at release scope). No artifact is added solely to prove another evidence mechanism (anti-proof-recursion).
+
+## 18. R1 publish-pipeline evidence classes (D-109, 2026-11-25)
+
+This section registers the verification-first contract for the AXL-V1-R1 Publish Pipeline (P30 v3 R1 slice). Mapping follows the §1 required-analysis chain (invariant → failure mode → existing independent coverage → residual gap → oracle → exact execution → artifact → blocking/corroborative → Gate criterion). It adds evidence classes; it does not alter the seven frozen families, the crypto profile or §17.
+
+**Release Gate boundary:** R1 output is a pre-A8 engineering release (D-109 positioning). None of these classes claims, replaces or waives the A8 release-Gate evidence owned by P30 §5 AXL-V1-A8; EV-07 stays A8-owned.
+
+### EV-R1-01 — Published-revision zero regression (blocking)
+
+- **Invariants:** the keyed build that is packaged passes the full `ctest` suite and the existing A2 evidence steps (A2 CLI contract, deterministic vector regeneration, independent crypto cross-check, A0 CLI regression, A0 and production-binary offline boundaries, no external repository references).
+- **Failure modes detected:** publishing a revision that regresses Gate-closed behavior; shipping a binary that was never unit-tested with its embedded floor.
+- **Existing independent coverage:** none — the slice workflows run only on their own `codex/axl-v1-a*` branches; nothing triggers on `main` or on tags.
+- **Exact execution:** the `build` job of `.github/workflows/axlic-publish.yml` on the packaged source revision.
+- **Gate criterion:** every step green on the packaged revision.
+
+### EV-R1-02 — Trust-floor source and fingerprint pin (blocking)
+
+- **Invariants:** the embedded floor is derived offline, with the Python standard library only, from the public-key file committed for the environment; that file must be exactly one PEM `PUBLIC KEY` block carrying an uncompressed P-256 SubjectPublicKeyInfo point whose SHA-256 equals the pinned fingerprint; `key_id` equals the environment's signing-key name and matches the identifier charset; any failure writes nothing; the checked-in default document stays the empty key set, so a plain build remains fail-closed.
+- **Failure modes detected:** a wrong or corrupted key file committed (for example the test key saved as the production file); a malformed floor; a partial document.
+- **Existing independent coverage:** none — CI holds no private key, so no functional verification against the real environment is possible; the fingerprint pin is the only detector.
+- **Oracle/fixture:** the committed public-key files and the fingerprints recorded in README; tampered copies in unit tests.
+- **Exact execution:** `tools/tests/test_build_trust_floor.py`; `tools/build_trust_floor.py` in the `build` job.
+- **Gate criterion:** all unit cases pass; the build job fails closed on any mismatch.
+
+### EV-R1-03 — Embedded floor matches the selected environment only (blocking)
+
+- **Invariants:** the packaged `axlic.exe` contains, byte for byte, the canonical floor document of its environment; no other environment's public key occurs in the binary; the compiled-in document equals the document given to CMake.
+- **Failure modes detected:** an empty or stale floor embedded (a silent failure: the verifier returns `unsupported` for every credential); a wrong-environment key embedded.
+- **Existing independent coverage:** none — no CLI command exposes the embedded floor, and CMake validates only the `format` field.
+- **Exact execution:** the Catch2 case "embedded floor is the configured trust-floor document and parses"; `tools/check_embedded_trust_floor.py` on the built executable in the `build` job and again on the executable inside the package before publishing.
+- **Gate criterion:** the check passes for the built environment and fails for the other one.
+
+### EV-R1-04 — Package self-containment and integrity (blocking)
+
+- **Invariants:** the package carries `axlic.exe`, every non-OS DLL it needs (the app-local VC++ runtime: the DLLs it imports and, transitively, those they import), third-party notices with full license texts, `SHA256SUMS.txt` and `build-manifest.json`; checksums are consistent inside the zip, across the cross-job transfer and before publishing.
+- **Failure modes detected:** a missing runtime DLL (the binary starts on the build machine but not on a clean target); a corrupted transfer; an untraceable artifact.
+- **Existing independent coverage:** `client/tests/verify_offline_boundary.py` checks forbidden imports only; nothing checks that the remaining imports are satisfied.
+- **Oracle/fixture:** `dumpbin /DEPENDENTS` of the packaged executable against an OS allowlist; recomputed SHA-256.
+- **Exact execution:** `tools/tests/test_package_axlic.py`; `tools/package_axlic.py` at packaging and its `verify` subcommand after download.
+- **Gate criterion:** no unresolved import; every recomputed hash equals the recorded one.
+
+### EV-R1-05 — Keyed-binary offline boundary and deliverable hygiene (blocking)
+
+- **Invariants:** the keyed `axlic.exe` imports no network/server module; repository deliverables contain no external repository references; pipeline tooling is never compiled into the binary.
+- **Existing independent coverage:** EV-A2-05 covers the default (empty-floor) build only.
+- **Exact execution:** `client/tests/verify_offline_boundary.py --expect-absent` and `tools/check_external_references.py` in the keyed `build` job.
+- **Gate criterion:** both reports PASS on the keyed build.
+
+### EV-R1-06 — Release identity (blocking)
+
+- **Invariants:** production publishes only an existing `vX.Y.Z` tag whose version equals the tagged commit's `project(axlicense VERSION …)` and whose commit is an ancestor of `origin/main`, and never creates or moves a tag; the test channel derives `<project version>-test.<yyyyMMdd>.<run_number>` at the requested ref; the release type follows the channel (production = latest Release, test = Pre-release); manual re-publish replaces the same-named assets of the existing release; workflow inputs reach scripts through step `env:`, only SHA-pinned actions are used, no secret other than the automatic token is read, the build job holds a read-only token, the token reaches only the publish steps that call `gh`, and a run with publishing disabled never reaches the publish job.
+- **Failure modes detected:** a mislabeled release; a tag pointing at unreviewed content; an accidental tag creation; duplicated or partially published releases; input injection into `run:` blocks.
+- **Existing independent coverage:** none (no release workflow existed).
+- **Oracle/fixture:** `tools/tests/test_release_identity.py`, `tools/tests/test_publish_release.py`, `tools/tests/test_workflow_contract.py`.
+- **Exact execution:** the identity step before any build; the publish step; the unit and contract tests under `ctest`.
+- **Gate criterion:** unit and contract tests green; guard steps green in hosted runs. The production-only guards are first exercised by the initial production release after integration (see Corroborative).
+
+### Corroborative (non-blocking)
+
+- The dual-environment hosted evidence run on the execution branch (`r1-windows.yml`, publishing disabled).
+- The first test-channel publish after integration, verified by re-running the package verification on the downloaded asset.
+- The initial production release after integration: tag/version equality, `main` ancestry and manual re-publish.
+
+### R1 evidence-family note
+
+EV-R1-01…06 are the blocking completion face for the R1 `EXECUTION_CLOSURE_CONTRACT`. No artifact is added solely to prove another evidence mechanism (anti-proof-recursion).

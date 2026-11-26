@@ -3,21 +3,23 @@ authority_id: AXL-V1-P30
 stage: P30
 scope: axlicense
 kind: implementation-plan
-version: "2"
+version: "3"
 status: current
 source_type: notion
 source_url: https://app.notion.com/p/3d94c57a590c813ba9e6fb1396334bd7
 migration_class: location-only
-semantic_change: "v2 (2026-11-23, D-106): A2 revised from self-built Node/TS backend + HTTPS transport to the platform-integration library plane (registration association, credential install, trust keyring, host CLI surface); server-plane realization moved out of this repository's scope; A3-A8 server-side content superseded pending a host-bridge integration follow-up; dependency graph updated. v1 (D-091) client-first stack unchanged for the Windows client."
+semantic_change: "v3 (2026-11-25, D-109): trust-keyring sourcing in the A2 slice changed from a packaging-time signing-backend export to an offline build-time derivation from the committed environment public-key files (tools/fetch_trust_floor.py removed); added the parallel slice AXL-V1-R1 — Publish Pipeline (release + test-publish GitHub Actions workflows, GitHub Releases as the distribution channel; R1 output is a pre-A8 engineering release, not the A8 release Gate) with its dependency-graph leaf, evidence-allocation row and CI rows; no A3–A8 content changed; clarified in the same version under D-110 after the R1 freeze (the R1 slice names the existing A2 evidence steps). v2 (2026-11-23, D-106): A2 revised from self-built Node/TS backend + HTTPS transport to the platform-integration library plane (registration association, credential install, trust keyring, host CLI surface); server-plane realization moved out of this repository's scope; A3-A8 server-side content superseded pending a host-bridge integration follow-up; dependency graph updated. v1 (D-091) client-first stack unchanged for the Windows client."
 ---
 
 # 30 — P30 Implementation Plan — AxLicense V1 v0.1
 
 > 🧱
 >
-> **Authority status: Accepted / P30 AxLicense V1 Implementation Planning + D-091 client-first language-stack reconciliation CLOSED — 2026-09-13; A2 direction revised by D-106 — 2026-11-23.** 本页把 trusted P02/P03 + P10–P20 Current Authority 转成 dependency-aware、evidence-gated vertical implementation plan。Current implementation direction is now **C++20/CMake for the Windows `axlic.exe` client, Node.js + TypeScript for the server, PostgreSQL for canonical persistence, with client-first sequencing**. Earlier Rust/Cargo wording on this page is superseded where it conflicts with D-091. 本页不授权 coding，也不冻结任何 P31 EXECUTION_CLOSURE_CONTRACT。
+> **Authority status: Accepted / P30 AxLicense V1 Implementation Planning + D-091 client-first language-stack reconciliation CLOSED — 2026-09-13; A2 direction revised by D-106 — 2026-11-23; trust-keyring sourcing revised and publish pipeline slice AXL-V1-R1 added by D-109 — 2026-11-25.** 本页把 trusted P02/P03 + P10–P20 Current Authority 转成 dependency-aware、evidence-gated vertical implementation plan。Current implementation direction is now **C++20/CMake for the Windows `axlic.exe` client, Node.js + TypeScript for the server, PostgreSQL for canonical persistence, with client-first sequencing**. Earlier Rust/Cargo wording on this page is superseded where it conflicts with D-091. 本页不授权 coding，也不冻结任何 P31 EXECUTION_CLOSURE_CONTRACT。
 >
 > **D-106 supersession note (2026-11-23):** the self-built server direction in §2.1 (server bullets) / §2.2 / §2.3 / §2.4 / §3 (`server/` topology) / §7.1 (server CI rows) is superseded as this-repository scope. The licensing platform (server canonical truth, signing backend, channel transport) and the host launcher bridge (channel consumption, RPC orchestration, receipt reporting) are owned outside this repository; axlic is consumed exclusively through the `axlic.exe` CLI contract. Those sections are retained below as historical direction and no longer authorize any in-repo server/transport implementation. The A2 slice in §5 is rewritten accordingly; A3–A8 entries retain their device-side semantics but their server-side content is superseded pending a host-bridge integration follow-up.
+>
+> **D-109 addendum note (2026-11-25):** the A2 slice's trust-keyring bullet no longer sources the embedded floor from a packaging-time signing-backend export: the floor is derived offline, at build time, from the environment public-key files committed under `client/keyring/`. §4 and §5 gain the parallel leaf **AXL-V1-R1 — Publish Pipeline**, and §6 / §7.1 gain the matching evidence and CI rows. R1 depends only on A2, does not re-plan A3–A8, and its output is a pre-A8 engineering release, not the A8 release Gate.
 
 ## 1. Stage contract
 
@@ -131,8 +133,8 @@ AXL-V1-A0 C++ Local Signed-Credential Gate
 AXL-V1-A1 C++ Windows Identity + Protected Local State
         ↓
 AXL-V1-A2 Platform Licensing Library Plane (D-106)
-        ↓
-AXL-V1-A3 Online Grant Activation + Credential Install
+        ↓                          ↘ (D-109)
+AXL-V1-A3 Online Grant Activation + Credential Install     AXL-V1-R1 Publish Pipeline
         ├──────────────┬──────────────┐
         ↓              ↓              ↓
 AXL-V1-A4          AXL-V1-A5      AXL-V1-A6
@@ -147,6 +149,8 @@ Refresh/Revision   Device Assertion Offline Activation
 ```
 
 **Client-first rule:** A0 与 A1 不要求真实 licensing platform即可 Gate-close；A2 (D-106 form) 也不引入任何网络/服务端代码——它是纯本地库平面，宿主桥负责通道侧。A4/A5/A6 在 A3 之后可以并行开发，但 P31 packages必须分别冻结 scope，不允许在共享 module/contract 上无协调并发改写同一 authority surface。
+
+**Publish-pipeline leaf (D-109):** AXL-V1-R1 是只依赖 A2 的并行叶子：它打包并发布已有的 `axlic.exe`，既不被 A3–A8 阻塞，也不阻塞 A3–A8。
 
 ## 5. Vertical slices
 
@@ -197,7 +201,7 @@ Includes:
 - **注册关联平面**：持久化平台注册响应返回的 opaque 设备引用（非权威便利引用，P16 FR19-ID-02 语义）；对外提供双态自报值（未注册/引用丢失自报 identity_value，已注册自报平台分配引用）；终态拒绝（自报值采纳失败 / 本地引用查无主体）时丢弃本地引用回退 identity_value 的处置入口；
 - **凭证安装平面**：安装 = 复用 A0 验签 → 载荷 `device_id` 与本地注册引用比对 → 按 (authority_revision, credential_generation) 字典序高水位防回滚（同版本幂等重装放行）→ 原子提交；唯一版本回退拒绝分类＝凭证陈旧（`CREDENTIAL_STALE`），线上 errorCode 字符串由宿主映射；空 entitlements 清权凭证为合法安装对象；
 - **通道侧元数据持久化**：policyVersion（对账上报轴）随安装本地持久化，不进 CBOR 载荷（P17 冻结面）；
-- **信任密钥环**：内嵌生产密钥环（打包期从签名后端导出公钥构件、构建期编译进 exe；初始为空、fail-closed）+ 状态根 append 覆盖文件（同 key_id 覆盖内嵌项）；条目形态 {key_id, X‖Y 64 字节}；完整轮换/分发机制为后续专项；
+- **信任密钥环**：内嵌生产密钥环（构建期由仓库内提交的环境公钥文件离线生成名单、编译进 exe；仓库内默认名单为空、fail-closed；D-109 取代原"打包期从签名后端导出公钥构件"）+ 状态根 append 覆盖文件（同 key_id 覆盖内嵌项）；条目形态 {key_id, X‖Y 64 字节}；完整轮换/分发机制为后续专项；
 - **持有版本查询面**：供宿主桥读取 (authorityRevision, credentialGeneration, policyVersion) 三元组或「无凭证」态，用于应答版本探测与发起对账；
 - **并列本地状态载体**：注册引用、已装凭证/高水位与通道侧元数据落于状态根下并列状态文件（DPAPI 信封 + 原子替换 + 既有互斥锁语义），machine-state 身份文件零改动；
 - **CLI 宿主消费面**：`status` / `entitlement` 从硬编码 absent 改为读取已安装凭证；新增 `device-register`（双态查询/采纳/重置）、`install`（验签+安装）、`held-version`（持有版本三元组查询），命名对齐 P17 CLI family。
@@ -205,6 +209,23 @@ Includes:
 Does not include: 网络代码、通道协议、RPC 编排、回执上报（宿主桥）；许可平台台账/签发/签名后端（仓外）；完整密钥轮换/分发机制。
 
 **Evidence maturation:** EV-A2-01…05（P20 v3 新证据类，blocking）；EV-02 设备本地安装/关联子集；EV-04 local association/anti-rollback/held-version 面.
+
+### AXL-V1-R1 — Publish Pipeline (D-109 Current Authority)
+
+**Outcome:** 让已经 Gate-closed 的 `axlic.exe` 具备可重复、可追溯的出厂通道：一条正式 `release` 工作流与一条仅手动触发的测试发布工作流，共用一条可复用流水线（构建 job 只读令牌 → 发布 job 可写令牌），在构建期用本环境提交在仓库内的公钥离线生成信任名单并编译进 exe，产物连同校验和与构建清单发布到本仓库的 GitHub Releases。验签代码、名单文档格式与默认本地构建（空名单）均不变。
+
+Includes:
+
+- **流水线结构**：两个薄入口（`release.yml`、`test-publish.yml`）调用 `axlic-publish.yml`（发布身份校验 → 离线名单生成 → 完整构建 → 全量测试与既有 A2 证据步骤 → 嵌入核对 → 打包 → 校验和复核后发布）；执行分支上的 `r1-windows.yml` 以双环境矩阵提供托管证据；
+- **信任名单来源**：`client/keyring/license-test.pub.pem` 与 `license-prod.pub.pem` 提交在仓库内，`tools/build_trust_floor.py` 离线生成名单并核对指纹；每个产物只嵌入本环境的一把钥匙；
+- **版本与发布规则**：正式版由推送 `vX.Y.Z` 标签触发，标签版本必须等于该提交 `CMakeLists.txt` 的项目版本且提交须在 `main` 上；测试版版本为 `<项目版本>-test.<yyyyMMdd>.<run_number>`，发为 Pre-release；正式版支持手动指定已存在标签重发并覆盖同名附件；
+- **产物**：`axlic-<版本>-win-x64.zip`（`axlic.exe`、随包 VC++ 运行库、第三方声明与完整许可证文本、`SHA256SUMS.txt`、`build-manifest.json`）。
+
+Does not include: 验签代码或名单格式改动、安装包/MSIX、Authenticode 签名、运行时覆盖写入侧与密钥轮换、W1 性能门禁、CI 自动触发测试发布。
+
+**Positioning:** R1 产物是 **A8 之前的工程发布**，不是 A8 release Gate：不执行 EV-07 门禁；安装/升级契约、真实 TPM 资格认证与 EV-01～07 发布级证据仍归 AXL-V1-A8。
+
+**Evidence maturation:** EV-R1-01…06（P20 v4 §18 新证据类，blocking）；既有 A2 证据步骤在待发布提交上复跑.
 
 > **A3–A8 supersession note (D-106):** 下列 A3–A8 条目保留其设备侧语义（activation/refresh/assertion/offline/recovery/hardening 的本地半边），但其 server-side content（Node/TS 服务端、HTTPS transport adapter、PostgreSQL canonical store、fixture signer port 等）已随 D-106 撤销为本仓范围外，待宿主桥集成专项重新规划；在新的专项权威落地前，这些条目不授权任何 in-repo server/transport 实现。
 
@@ -308,6 +329,7 @@ Includes:
 | EV-05 Assertion/Scope | A5 | A7/A8 |
 | EV-06 CLI/Diagnostics | A0 | A8 |
 | EV-07 W1 Performance | A0 baseline | A8 release build |
+| EV-R1 Publish pipeline | R1 | R1 (pipeline self-evidence; not an A8 release-Gate family) |
 
 Rule: evidence在早期 slice出现并不自动代表 P20 blocking family最终 PASS；release Gate只能使用满足 P31/P34 exact binding 的最终 materialized evidence。
 
@@ -322,6 +344,7 @@ Minimum matrix：
 - **Cross-language conformance:** C++ verifier/encoder-facing fixtures and TypeScript server encoder/verifier must consume the same checked-in EV-01 golden vectors；
 - formatting/lint/static checks：C++ formatting/static analysis + TypeScript formatting/lint/typecheck；
 - exact compiler/CMake/Node/package/dependency versions pinned by the owning P31 package/lockfiles；no floating `latest` in Gate evidence。
+- **Windows / MSVC publish pipeline (D-109, AXL-V1-R1):** 可复用流水线 `axlic-publish.yml`（发布身份校验、离线名单生成、完整构建与 A2 证据、嵌入核对、打包；发布 job 在校验和复核后发布到 GitHub Releases）；入口 `release.yml`（推 `vX.Y.Z` 标签 + 手动重发）与 `test-publish.yml`（仅手动）；仅使用已按 commit 固定的 `actions/checkout`、`actions/setup-python`、`actions/upload-artifact`，其余用 runner 自带的 `gh`；工作流不使用任何 secret（自动 `GITHUB_TOKEN` 除外）。
 
 Hosted Windows runner不能替代 EV-03 physical TPM qualification。
 

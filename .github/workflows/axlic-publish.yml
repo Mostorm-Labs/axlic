@@ -1,0 +1,238 @@
+name: axlic publish pipeline
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: Trust-key environment whose public key is embedded (test or prod)
+        type: string
+        required: true
+      ref:
+        description: Branch, tag or commit that is built and published
+        type: string
+        required: true
+      publish:
+        description: Publish to GitHub Releases (false only builds, tests and packages)
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      AXLIC_CHANNEL_ENVIRONMENT: ${{ inputs.environment }}
+    outputs:
+      version: ${{ steps.identity.outputs.version }}
+      revision: ${{ steps.identity.outputs.revision }}
+      tag: ${{ steps.identity.outputs.tag }}
+    steps:
+      - name: Check out the publish ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install frozen Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: 3.13.15
+
+      - name: Resolve the release identity
+        id: identity
+        env:
+          IDENTITY_REF: ${{ inputs.ref }}
+          IDENTITY_PUBLISH: ${{ inputs.publish }}
+          IDENTITY_RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          python tools/release_identity.py --environment $env:AXLIC_CHANNEL_ENVIRONMENT --ref $env:IDENTITY_REF --publish $env:IDENTITY_PUBLISH --run-number $env:IDENTITY_RUN_NUMBER --github-output $env:GITHUB_OUTPUT --github-env $env:GITHUB_ENV
+          if ($LASTEXITCODE) { throw 'the release identity was rejected before anything was built' }
+
+      - name: Install frozen verification tools
+        run: python -m pip install --disable-pip-version-check cmake==4.4.2 cryptography==50.0.1
+
+      - name: Verify frozen toolchain availability
+        run: |
+          if ((cmake --version | Select-Object -First 1) -ne 'cmake version 4.4.2') { throw 'CMake 4.4.2 is required' }
+          if (-not (Test-Path 'C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0')) { throw 'Windows SDK 10.0.26100.0 is required' }
+
+      - name: Derive the trust floor from the committed public key
+        run: |
+          python tools/build_trust_floor.py --environment $env:AXLIC_CHANNEL_ENVIRONMENT --out "$env:RUNNER_TEMP/trust-floor.json"
+          if ($LASTEXITCODE) { throw 'trust-floor derivation failed' }
+
+      - name: Configure x64 Release with the keyed trust floor
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -T v143 "-DAXLIC_TRUST_FLOOR_FILE=$env:RUNNER_TEMP/trust-floor.json"
+
+      - name: Build x64 Release
+        run: cmake --build build --config Release --parallel
+
+      - name: Run frozen unit and process suite
+        run: |
+          New-Item -ItemType Directory -Force evidence | Out-Null
+          $junit = Join-Path $PWD 'evidence/ctest.xml'
+          ctest --test-dir build -C Release --output-on-failure --output-junit $junit
+
+      - name: Produce A2 library-plane CLI contract report
+        run: >-
+          python client/tests/test_a2_cli.py
+          --exe build/client/Release/axlic_a2_cli_scenario.exe
+          --vectors reference/vectors/a2/install.json
+          --implementation-revision $env:AXLIC_REVISION
+          --report evidence/a2-cli-contract.json
+
+      - name: Verify A2 install vectors regenerate deterministically
+        run: |
+          python reference/tools/a2_reference.py --generate --output evidence/install-regenerated.json
+          if (Compare-Object (Get-Content reference/vectors/a2/install.json) (Get-Content evidence/install-regenerated.json)) {
+            throw 'reference/vectors/a2/install.json drifted from the independent generator'
+          }
+
+      - name: Independent canonical and crypto cross-check
+        run: >-
+          python reference/tools/a0_reference.py --check
+          --implementation-revision $env:AXLIC_REVISION
+          --report evidence/independent-reference.json
+
+      - name: Produce inherited A0 CLI report
+        run: >-
+          python client/tests/test_cli.py
+          --exe build/client/Release/axlic_a0_fixture_cli.exe
+          --vectors reference/vectors/a0/corpus.json
+          --valid-state reference/vectors/a0/valid_state.json
+          --absent-state reference/vectors/a0/absent_state.json
+          --implementation-revision $env:AXLIC_REVISION
+          --report evidence/a0-cli-regression.json
+
+      - name: Prove inherited A0 offline boundary
+        run: >-
+          python client/tests/verify_offline_boundary.py
+          --exe build/client/Release/axlic_a0_fixture_cli.exe
+          --build-dir build
+          --state reference/vectors/a0/valid_state.json
+          --implementation-revision $env:AXLIC_REVISION
+          --report evidence/a0-offline-no-server.json
+
+      - name: Prove keyed production binary offline boundary
+        run: >-
+          python client/tests/verify_offline_boundary.py
+          --exe build/client/Release/axlic.exe
+          --build-dir build
+          --state reference/vectors/a0/valid_state.json
+          --expect-absent
+          --implementation-revision $env:AXLIC_REVISION
+          --report evidence/production-offline-no-server.json
+
+      - name: Prove deliverables contain no external repository references
+        run: >-
+          python tools/check_external_references.py
+          --implementation-revision $env:AXLIC_REVISION
+          --report evidence/no-external-references.json
+
+      - name: Prove the binary embeds only this environment's key
+        run: >-
+          python tools/check_embedded_trust_floor.py
+          --environment $env:AXLIC_CHANNEL_ENVIRONMENT
+          --exe build/client/Release/axlic.exe
+          --implementation-revision $env:AXLIC_REVISION
+          --report evidence/embedded-trust-floor.json
+
+      - name: Record build and toolchain identity
+        run: >-
+          python reference/tools/toolchain_report.py
+          --build-dir build
+          --implementation-revision $env:AXLIC_REVISION
+          --artifact-id "AXL-V1-R1-$env:AXLIC_CHANNEL_ENVIRONMENT-build-toolchain"
+          --report evidence/build-toolchain.json
+
+      - name: Package the keyed executable
+        run: >-
+          python tools/package_axlic.py package
+          --exe build/client/Release/axlic.exe
+          --build-dir build
+          --deps-dir build/_deps
+          --environment $env:AXLIC_CHANNEL_ENVIRONMENT
+          --version $env:AXLIC_VERSION
+          --revision $env:AXLIC_REVISION
+          --out-dir dist
+          --toolchain-report evidence/build-toolchain.json
+
+      - name: Upload the package for the publish job
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: axlic-${{ inputs.environment }}-dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload reviewer evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: AXL-V1-R1-${{ inputs.environment }}-evidence
+          path: evidence
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: build
+    if: inputs.publish == true
+    runs-on: windows-2022
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      AXLIC_CHANNEL_ENVIRONMENT: ${{ inputs.environment }}
+    steps:
+      - name: Check out the built revision for the verifying tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          # The commit the build job built, never the ref it was named by:
+          # a branch can move between the two checkouts.
+          ref: ${{ needs.build.outputs.revision }}
+          persist-credentials: false
+
+      - name: Install frozen Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: 3.13.15
+
+      - name: Download the package built by this run
+        env:
+          DIST_ARTIFACT: axlic-${{ inputs.environment }}-dist
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download $env:GITHUB_RUN_ID --name $env:DIST_ARTIFACT --dir dist
+          if ($LASTEXITCODE) { throw 'the package artifact of this run is unavailable' }
+
+      - name: Re-verify the downloaded package
+        env:
+          BUILD_REVISION: ${{ needs.build.outputs.revision }}
+          BUILD_VERSION: ${{ needs.build.outputs.version }}
+        run: >-
+          python tools/package_axlic.py verify
+          --zip "dist/axlic-$env:BUILD_VERSION-win-x64.zip"
+          --environment $env:AXLIC_CHANNEL_ENVIRONMENT
+
+      - name: Publish or re-publish the release
+        env:
+          BUILD_REVISION: ${{ needs.build.outputs.revision }}
+          BUILD_VERSION: ${{ needs.build.outputs.version }}
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python tools/publish_release.py
+          --environment $env:AXLIC_CHANNEL_ENVIRONMENT
+          --tag $env:RELEASE_TAG
+          --version $env:BUILD_VERSION
+          --revision $env:BUILD_REVISION
+          --dist-dir dist

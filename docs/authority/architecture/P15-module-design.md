@@ -3,12 +3,12 @@ authority_id: AXL-V1-P15
 stage: P15
 scope: axlicense
 kind: module
-version: "2"
+version: "3"
 status: current
 source_type: notion
 source_url: https://app.notion.com/p/3d94c57a590c81359649d808edd4869e
 migration_class: location-only
-semantic_change: "v2 (2026-11-23, D-106): appended A2 realization addendum — TrustKeyringSource module; device-register/install/held-version command-family realizations under the host-bridge consumption model; server-plane modules (E section) retained as out-of-repo ownership. No change to frozen module boundaries, ports, dependency rules or invariants."
+semantic_change: "v3 (2026-11-25, D-109): TrustKeyringSource realization row reworded — the embedded floor is derived at build time from the environment public-key file committed in the repository instead of a packaging-time signing-backend export; no frozen module boundary, port, dependency rule or invariant changes. v2 (2026-11-23, D-106): appended A2 realization addendum — TrustKeyringSource module; device-register/install/held-version command-family realizations under the host-bridge consumption model; server-plane modules (E section) retained as out-of-repo ownership. No change to frozen module boundaries, ports, dependency rules or invariants."
 ---
 
 # 15 — P15 Module Design — AxLicense V1 v0.1
@@ -759,7 +759,7 @@ This addendum records how the A2 library-plane realization (P30 v2 A2 slice) map
 | `LocalStateRepository` | Parallel license-state file at the protected state root (DPAPI machine envelope, atomic replace, existing mutation-lock discipline) carrying registration association, installed credential/high-watermark, and channel-side policyVersion metadata. The machine-state identity file is unchanged. |
 | `LocalMutationCoordinator` | Reused unchanged: license-state mutations take the same machine-wide single-writer lease as identity mutations. |
 | `RuntimeLicense` | Reads the installed (already-verified) stored credential as its offline truth; `status`/`entitlement` no longer hardcode absent. |
-| `TrustKeyringSource` (new, additive) | Local trust-metadata source module: embedded production keyring floor (packaging-time public-key artifact compiled into the binary; initially empty = fail-closed) merged with a state-root append overlay where an appended `key_id` overrides the floor entry. Entry form {key_id, X‖Y 64 bytes}. A malformed overlay is ignored (trust-loss direction only). Owns key material sourcing only; owns no verification semantics beyond supplying the trusted-key set consumed by the frozen A0 verifier. |
+| `TrustKeyringSource` (new, additive) | Local trust-metadata source module: embedded production keyring floor (derived at build time from the environment public-key file committed in the repository and compiled into the binary; the checked-in default document is empty = fail-closed; sourcing per D-109) merged with a state-root append overlay where an appended `key_id` overrides the floor entry. Entry form {key_id, X‖Y 64 bytes}. A malformed overlay is ignored (trust-loss direction only). Owns key material sourcing only; owns no verification semantics beyond supplying the trusted-key set consumed by the frozen A0 verifier. |
 
 ### M. Command-family realizations (P15 §G under D-106)
 

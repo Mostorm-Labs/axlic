@@ -1,0 +1,27 @@
+name: R1 Windows evidence
+
+on:
+  push:
+    branches:
+      - codex/axl-v1-r1-publish
+  workflow_dispatch:
+
+jobs:
+  keyed-build:
+    strategy:
+      fail-fast: false
+      matrix:
+        environment:
+          - test
+          - prod
+    # The called publish job requests contents: write and is skipped by
+    # publish: false; the caller grants what the called workflow declares so
+    # GitHub cannot reject the call. No step of this workflow runs with it.
+    permissions:
+      contents: write
+      actions: read
+    uses: ./.github/workflows/axlic-publish.yml
+    with:
+      environment: ${{ matrix.environment }}
+      ref: ${{ github.ref_name }}
+      publish: false
