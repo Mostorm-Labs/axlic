@@ -443,4 +443,13 @@ TEST_CASE("legacy state file with a channel policy version still reads as valid"
   CHECK(restored.entitlements[1].entitlement_id == "nearhub.seats");
   CHECK(restored.entitlements[1].max_u64 == 5U);
   CHECK(restored.entitlements[1].validity.not_after == 2000000000);
+
+  // The next write retires the key: the state read from the legacy document is
+  // written back without it.
+  REQUIRE(store.prepare_for_mutation() == StateStoreOutcome::ok);
+  REQUIRE(store.write(*read.state) == StateStoreOutcome::ok);
+  const auto rewritten = nlohmann::json::parse(read_plaintext(protector, read_state_file(store.state_path())));
+  const auto& rewritten_credential = rewritten.at("credential");
+  CHECK_FALSE(rewritten_credential.contains("policy_version"));
+  CHECK(rewritten_credential.size() == 8U);
 }

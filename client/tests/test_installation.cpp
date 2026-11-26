@@ -43,12 +43,14 @@ class FakeStateStore final : public ILicenseStateStore {
   StateStoreOutcome write(const LicenseState& value) override {
     state = value;
     exists = true;
+    writes += 1U;
     return StateStoreOutcome::ok;
   }
 
   LicenseState state;
   bool exists{false};
   StateStoreOutcome fail_read{StateStoreOutcome::ok};
+  unsigned writes{0U};
 };
 
 class FakeLock final : public IMutationLock {
@@ -226,9 +228,13 @@ TEST_CASE("same version reinstall is idempotent") {
               store, lock, source.trusted_keys, request(source, "v1"))
               .code == InstallCode::ok);
   const auto committed = store.state;
+  REQUIRE(store.writes == 1U);
   const auto result =
       axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1"));
   CHECK(result.code == InstallCode::ok_idempotent);
+  // The equal-version path is a reinstall: it commits again, now that there is
+  // no channel value left to refresh.
+  CHECK(store.writes == 2U);
   CHECK(store.state == committed);
 }
 
