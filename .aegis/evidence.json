@@ -102,6 +102,7 @@
     {"id":"EV-R1-INDEPENDENT-REVIEWS","status":"available","kind":"gate-review","ref":"independent code review 81370f3..dd64060, P34 review 81370f3..60a5ede and incremental review of 055f630, all read-only (D-110; summarized in the decision log)"},
     {"id":"EV-GIT-R1-INTEGRATION","status":"available","kind":"repository-revision","ref":"9112497df2d73fbbecf65ba4dcf950d5285f6e7c"},
     {"id":"EV-R1-TEST-PUBLISH","status":"available","kind":"gate-evidence","ref":"run 45738678112/jobs 139638035125,139639190081@9112497df2d73fbbecf65ba4dcf950d5285f6e7c (D-111 first test-channel publish: Pre-release v0.1.0-test.20261126.1; sha256:f878baf2e983577cd1cfb782e784ae32f85bf55bbf9acd58f8f291a3bd0f5498 axlic-0.1.0-test.20261126.1-win-x64.zip, re-verified locally after download)"},
-    {"id":"EV-R1-INTEGRATION-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/implementation/R1/repository-integration-closure.md"}
+    {"id":"EV-R1-INTEGRATION-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/implementation/R1/repository-integration-closure.md"},
+    {"id":"EV-GIT-R2-PACKAGE","status":"available","kind":"repository-artifact","ref":".aegis/packages/AXL-V1-R2-P31.md"}
   ]
 }

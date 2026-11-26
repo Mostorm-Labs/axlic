@@ -3,12 +3,12 @@ authority_id: AXL-V1-P20
 stage: P20
 scope: axlicense
 kind: verification-design
-version: "4"
+version: "5"
 status: current
 source_type: notion
 source_url: https://app.notion.com/p/3d94c57a590c81cb8b62c8391702d839
 migration_class: location-only
-semantic_change: "v4 (2026-11-25, D-109): §17 EV-A2-05 and its corroborative item no longer reference the packaging-time export tool (removed; the floor is derived offline from the public keys committed in the repository); added §18 R1 publish-pipeline evidence classes (EV-R1-01…06 blocking + corroborative items); no change to the frozen crypto profile, structural numeric bounds (§3.5), the seven A0/A1 evidence families or the §17 invariants; clarified in the same version under D-110 after the R1 freeze (wording ratified there): EV-R1-04 names the runtime closure, EV-R1-02 the empty default document, EV-R1-06 the token scope, EV-R1-01 the existing A2 evidence steps. v3 (2026-11-23, D-106): added §17 A2 library-plane evidence classes (EV-A2-01…05 + corroborative walkthrough) registering the verification-first contract for the platform-integration library plane; no change to the frozen crypto profile, structural numeric bounds (§3.5) or the seven A0/A1 evidence families"
+semantic_change: "v5 (2026-11-26, D-112): §17 revised for the removal of channel-side policyVersion from the A2 library plane — EV-A2-01 and EV-A2-04 invariants (and EV-A2-01's exact execution) no longer include the policyVersion refresh, the camelCase triple or the flag, and the corroborative walkthrough drops the flag; added EV-A2-06 (local-state forward compatibility, blocking); no change to the frozen crypto profile, structural numeric bounds (§3.5), the seven A0/A1 evidence families, EV-A2-02/03/05 or §18. v4 (2026-11-25, D-109): §17 EV-A2-05 and its corroborative item no longer reference the packaging-time export tool (removed; the floor is derived offline from the public keys committed in the repository); added §18 R1 publish-pipeline evidence classes (EV-R1-01…06 blocking + corroborative items); no change to the frozen crypto profile, structural numeric bounds (§3.5), the seven A0/A1 evidence families or the §17 invariants; clarified in the same version under D-110 after the R1 freeze (wording ratified there): EV-R1-04 names the runtime closure, EV-R1-02 the empty default document, EV-R1-06 the token scope, EV-R1-01 the existing A2 evidence steps. v3 (2026-11-23, D-106): added §17 A2 library-plane evidence classes (EV-A2-01…05 + corroborative walkthrough) registering the verification-first contract for the platform-integration library plane; no change to the frozen crypto profile, structural numeric bounds (§3.5) or the seven A0/A1 evidence families"
 ---
 
 # 20 — P20 Verification Design — AxLicense V1 v0.1
@@ -417,13 +417,15 @@ Before P31 authorizes code as complete, downstream authority must be able to fre
 
 This section registers the verification-first contract for the A2 platform-integration library plane (P30 v2 A2 slice; P15 v2 realization addendum). Mapping follows the §1 required-analysis chain (invariant → failure mode → existing independent coverage → residual gap → oracle → exact execution → artifact → blocking/corroborative → Gate criterion). It adds evidence classes; it does not alter the seven frozen families or the crypto profile.
 
+**D-112 revision (2026-11-26):** channel-side policyVersion is no longer part of the A2 library plane. EV-A2-01 and EV-A2-04 below are stated as revised (the held version is the camelCase pair; `install` takes only the artifact path), the corroborative walkthrough is reworded accordingly, and EV-A2-06 is added.
+
 ### EV-A2-01 — Credential installation decision matrix (blocking)
 
-- **Invariants:** install = A0 verify → payload `device_id` equals local registration association → (authority_revision, credential_generation) lexicographic high-watermark → atomic commit; same-version reinstall is idempotent and refreshes channel policyVersion; an empty-entitlements revocation credential is a legal install object; the sole version-rollback rejection class is stale-credential.
+- **Invariants:** install = A0 verify → payload `device_id` equals local registration association → (authority_revision, credential_generation) lexicographic high-watermark → atomic commit; same-version reinstall is idempotent; an empty-entitlements revocation credential is a legal install object; the sole version-rollback rejection class is stale-credential.
 - **Failure modes detected:** rollback acceptance (lower revision, or equal revision with lower generation), identity-mismatch acceptance (unregistered / wrong reference / unparsable `device_id`), revocation-credential rejection, partial state on crash mid-commit, verification bypass through the install path.
 - **Existing independent coverage:** EV-01 corpus covers raw verification; EV-A2-01 uniquely covers the decision pipeline **around** verification (match, high-watermark, idempotence, atomicity).
 - **Oracle/fixture:** signed fixtures produced by the independent Python reference signer (`reference/tools/a0_reference.py`); in-memory fake state store + real Windows store; CommitPoint fault-injection callbacks.
-- **Exact execution:** Catch2 unit matrix — happy install; empty-entitlements install; stale on both rollback axes; idempotent same-version reinstall with policyVersion refresh; device mismatch; unregistered rejection; verify-failure passthrough; crash-injection atomicity (no partial state survives).
+- **Exact execution:** Catch2 unit matrix — happy install; empty-entitlements install; stale on both rollback axes; idempotent same-version reinstall (stored credential unchanged); device mismatch; unregistered rejection; verify-failure passthrough; crash-injection atomicity (no partial state survives).
 - **Gate criterion:** every matrix cell asserts the frozen classification; any misclassification is a Gate-blocking failure.
 
 ### EV-A2-02 — Trust keyring merge semantics (blocking)
@@ -443,7 +445,7 @@ This section registers the verification-first contract for the A2 platform-integ
 
 ### EV-A2-04 — Host CLI contract (blocking)
 
-- **Invariants:** JSON envelope contract, exit-code family (0 success / 2 command-invalid / 3 credential-class failure / 4 internal / 5 retryable), single-line stdout, no secret/path leakage in observable output; `held-version` returns the camelCase triple or no-credential state.
+- **Invariants:** JSON envelope contract, exit-code family (0 success / 2 command-invalid / 3 credential-class failure / 4 internal / 5 retryable), single-line stdout, no secret/path leakage in observable output; `install <artifact_path>` takes no channel metadata and its `data` carries exactly `result`, `credential_id`, `authority_revision` and `credential_generation`; `held-version` returns the camelCase pair (authorityRevision, credentialGeneration) or the no-credential state; a command line that still passes `--policy-version`, and an install with a missing or extra argument, is COMMAND_INVALID.
 - **Failure modes detected:** contract drift for the host bridge, output leakage.
 - **Existing independent coverage:** EV-06 covers A0/A1 commands; this class covers the new A2 commands.
 - **Exact execution:** Python subprocess oracle against the scenario executable (injected temp state root), same observe pattern as the existing CLI contract tests.
@@ -454,13 +456,22 @@ This section registers the verification-first contract for the A2 platform-integ
 - **Invariants:** all pre-existing suites stay green; the binary imports no network modules; no packaging tooling is part of the binary.
 - **Exact execution:** full `ctest` including the existing offline-boundary import scan; grep for absence of external repository references in deliverables.
 
+### EV-A2-06 — Local-state forward compatibility (blocking; D-112, 2026-11-26)
+
+- **Invariants:** an executable upgrade reads the previous supported local-state contract (P17 §11): a credential document that still carries the retired `policy_version` key, as written by earlier builds, decodes as valid state — the key is ignored and never classified corrupt; the current writer does not emit the key, so the next write retires it; credential validity no longer depends on the key.
+- **Failure modes detected:** an upgrade that classifies every pre-existing installed state as `LOCAL_STATE_CORRUPT` (the installed base loses its credential status on upgrade); a decoder that rejects the retired key; a writer that keeps persisting it.
+- **Existing independent coverage:** none — once the fixtures no longer carry the key, no other class reads a legacy-format document; EV-A2-01 covers the install decision on an already-decoded state.
+- **Oracle/fixture:** a hand-built state-file envelope whose plaintext credential document uses the pre-D-112 writer's key set, including `policy_version`, protected with the test protector; the real Windows store over a temporary state root.
+- **Exact execution:** Catch2 cases in the license-state repository suite — the legacy document reads as valid registration and credential; the document written by the current store has exactly the eight credential keys and no `policy_version`.
+- **Gate criterion:** both cases pass; a corrupt classification of the legacy document or any written occurrence of the key is a Gate-blocking failure.
+
 ### Corroborative (non-blocking)
 
-- Manual end-to-end walkthrough on one Windows machine: `status` (absent) → `identity` → `device-register` (identity_value self-report) → `adopt` → independent-reference-signed fixture `install --policy-version` → `status`/`entitlement`/`held-version` correct; lower-version fixture rejected stale.
+- Manual end-to-end walkthrough on one Windows machine: `status` (absent) → `identity` → `device-register` (identity_value self-report) → `adopt` → independent-reference-signed fixture `install` → `status`/`entitlement`/`held-version` correct; lower-version fixture rejected stale.
 
 ### A2 evidence-family note
 
-EV-A2-01…05 are the blocking completion face for the A2 `EXECUTION_CLOSURE_CONTRACT`; they compose with, and do not replace, the seven frozen families (EV-01/02/04 subsume overlapping A2 concerns at release scope). No artifact is added solely to prove another evidence mechanism (anti-proof-recursion).
+EV-A2-01…05 are the blocking completion face for the A2 `EXECUTION_CLOSURE_CONTRACT`; they compose with, and do not replace, the seven frozen families (EV-01/02/04 subsume overlapping A2 concerns at release scope). No artifact is added solely to prove another evidence mechanism (anti-proof-recursion). EV-A2-06 (added by D-112) joins EV-A2-01 and EV-A2-04 as revised, and EV-A2-05, as the blocking completion face of the AXL-V1-R2 `EXECUTION_CLOSURE_CONTRACT`: it protects the upgrade path of the state file that EV-A2-01 only consumes after decoding.
 
 ## 18. R1 publish-pipeline evidence classes (D-109, 2026-11-25)
 

@@ -3,12 +3,12 @@ authority_id: AXL-V1-P15
 stage: P15
 scope: axlicense
 kind: module
-version: "3"
+version: "4"
 status: current
 source_type: notion
 source_url: https://app.notion.com/p/3d94c57a590c81359649d808edd4869e
 migration_class: location-only
-semantic_change: "v3 (2026-11-25, D-109): TrustKeyringSource realization row reworded — the embedded floor is derived at build time from the environment public-key file committed in the repository instead of a packaging-time signing-backend export; no frozen module boundary, port, dependency rule or invariant changes. v2 (2026-11-23, D-106): appended A2 realization addendum — TrustKeyringSource module; device-register/install/held-version command-family realizations under the host-bridge consumption model; server-plane modules (E section) retained as out-of-repo ownership. No change to frozen module boundaries, ports, dependency rules or invariants."
+semantic_change: "v4 (2026-11-26, D-112): A2 realization addendum reworded — channel-side policyVersion is removed from the library plane: the CredentialManager row no longer refreshes it on a same-version reinstall, the LocalStateRepository row drops it from the license-state file (a credential document that still carries the retired key stays readable and is rewritten without it), the install row takes the artifact bytes only, the held-version row returns the (authorityRevision, credentialGeneration) pair, and invariant 3 no longer persists channel-origin metadata; invariant 4 added (an upgrade reads the previous license-state contract). No frozen module boundary, port or dependency rule changes. v3 (2026-11-25, D-109): TrustKeyringSource realization row reworded — the embedded floor is derived at build time from the environment public-key file committed in the repository instead of a packaging-time signing-backend export; no frozen module boundary, port, dependency rule or invariant changes. v2 (2026-11-23, D-106): appended A2 realization addendum — TrustKeyringSource module; device-register/install/held-version command-family realizations under the host-bridge consumption model; server-plane modules (E section) retained as out-of-repo ownership. No change to frozen module boundaries, ports, dependency rules or invariants."
 ---
 
 # 15 — P15 Module Design — AxLicense V1 v0.1
@@ -743,6 +743,8 @@ P16 must trace at least these module-to-module flows using the owners above:
 
 ## P15 A2 realization addendum — Module Design Current Authority — 2026-11-23 (D-106)
 
+> **D-112 revision (2026-11-26):** the rows and invariants below are stated as revised by D-112 — channel-side policyVersion is no longer part of the library plane, and the held version is the `(authorityRevision, credentialGeneration)` pair. Invariant 4 states the upgrade rule for state files written by earlier builds.
+
 ### K. Scope and ownership boundary
 
 This addendum records how the A2 library-plane realization (P30 v2 A2 slice) maps onto the frozen FR-019 module topology. It does not reopen any frozen module boundary, port, dependency rule or invariant. Under the host-bridge consumption model (D-106):
@@ -754,9 +756,9 @@ This addendum records how the A2 library-plane realization (P30 v2 A2 slice) map
 
 | Module (frozen owner) | A2 realization |
 |---|---|
-| `CredentialManager` | Local install pipeline: reuse A0 `verify` → payload `device_id` vs local registration association → (authority_revision, credential_generation) lexicographic high-watermark anti-rollback (same-version idempotent reinstall allowed, refreshing channel policyVersion) → atomic local commit. Empty-entitlements revocation credential is a legal install object. Sole version-rollback rejection class = stale credential; on-wire errorCode mapping is host-owned. |
+| `CredentialManager` | Local install pipeline: reuse A0 `verify` → payload `device_id` vs local registration association → (authority_revision, credential_generation) lexicographic high-watermark anti-rollback (same-version idempotent reinstall allowed) → atomic local commit. Empty-entitlements revocation credential is a legal install object. Sole version-rollback rejection class = stale credential; on-wire errorCode mapping is host-owned. |
 | `DeviceRegistrationClient` (local association half) | Dual-state self-report resolution (unregistered/lost reference reports `identity_value`; registered reports platform-assigned reference), adoption of the platform-returned opaque reference after a valid platform result (P15 §F registration port: persist returned reference only after a valid server result), and terminal-rejection reset that drops the local reference and falls back to `identity_value`. The reference is a convenience association, never canonical authority (P16 FR19-ID-02). |
-| `LocalStateRepository` | Parallel license-state file at the protected state root (DPAPI machine envelope, atomic replace, existing mutation-lock discipline) carrying registration association, installed credential/high-watermark, and channel-side policyVersion metadata. The machine-state identity file is unchanged. |
+| `LocalStateRepository` | Parallel license-state file at the protected state root (DPAPI machine envelope, atomic replace, existing mutation-lock discipline) carrying registration association and installed credential/high-watermark. A credential document written by an earlier build may still carry the retired `policy_version` key: it is ignored on read and not written anymore. The machine-state identity file is unchanged. |
 | `LocalMutationCoordinator` | Reused unchanged: license-state mutations take the same machine-wide single-writer lease as identity mutations. |
 | `RuntimeLicense` | Reads the installed (already-verified) stored credential as its offline truth; `status`/`entitlement` no longer hardcode absent. |
 | `TrustKeyringSource` (new, additive) | Local trust-metadata source module: embedded production keyring floor (derived at build time from the environment public-key file committed in the repository and compiled into the binary; the checked-in default document is empty = fail-closed; sourcing per D-109) merged with a state-root append overlay where an appended `key_id` overrides the floor entry. Entry form {key_id, X‖Y 64 bytes}. A malformed overlay is ignored (trust-loss direction only). Owns key material sourcing only; owns no verification semantics beyond supplying the trusted-key set consumed by the frozen A0 verifier. |
@@ -766,14 +768,15 @@ This addendum records how the A2 library-plane realization (P30 v2 A2 slice) map
 | Family | A2 realization |
 |---|---|
 | `device-register` | Local association triad surfaced to the host: no-argument query returns the dual-state self-report value; `adopt` persists the platform-returned reference; `reset` drops it on terminal rejection. The server canonical mutation half of this family is host/platform-owned. |
-| `install` (local half of `refresh`/delivery) | Host hands the delivered artifact bytes + channel policyVersion to axlic; axlic runs the frozen verify/match/anti-rollback/atomic-commit pipeline. Delivery/receipt correlation (deliveryRef) stays host-owned and never enters axlic. |
-| `held-version` (read-only observation) | Returns the held (authorityRevision, credentialGeneration, policyVersion) triple or the no-credential state, so the host can answer version probes and initiate reconciliation without parsing local state. |
+| `install` (local half of `refresh`/delivery) | Host hands the delivered artifact bytes to axlic (no channel metadata); axlic runs the frozen verify/match/anti-rollback/atomic-commit pipeline. Delivery/receipt correlation (deliveryRef) stays host-owned and never enters axlic. |
+| `held-version` (read-only observation) | Returns the held (authorityRevision, credentialGeneration) pair or the no-credential state, so the host can answer version probes and initiate reconciliation without parsing local state. |
 
 ### N. Invariant additions (additive only)
 
 1. An empty merged trust keyring is legal and fail-closed: no verification can succeed, and no fallback trust path exists.
 2. License-state and machine-state remain separately persisted; neither write path may rewrite the other's file.
-3. Channel-origin metadata (policyVersion) is persisted locally but never enters the CBOR payload (P17 frozen face); channel-transient values (deliveryRef, reason) never enter axlic state.
+3. Channel-origin metadata never enters the CBOR payload (P17 frozen face) and, since D-112, is no longer persisted either: the retired `policy_version` key is ignored when read and never written; channel-transient values (deliveryRef, reason) never enter axlic state.
+4. An executable upgrade reads the previous license-state contract: a stored credential that still carries the retired key is valid state, never corrupt (P17 §11), and the next write retires the key.
 
 ### O. P15 A2 addendum disposition
 
