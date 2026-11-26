@@ -5,6 +5,8 @@
 #define NOMINMAX
 #include <windows.h>
 
+#include <nlohmann/json.hpp>
+
 #include <chrono>
 #include <array>
 #include <filesystem>
@@ -116,6 +118,46 @@ std::string read_state_file(const std::filesystem::path& path) {
 void write_state_file(const std::filesystem::path& path, const std::string& content) {
   std::ofstream stream(path, std::ios::binary | std::ios::trunc);
   stream << content;
+}
+
+std::string encode_hex(const std::vector<std::uint8_t>& bytes) {
+  constexpr std::array<char, 16> digits{'0', '1', '2', '3', '4', '5', '6', '7', '8',
+                                        '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+  std::string hex;
+  for (const auto byte : bytes) {
+    hex.push_back(digits[byte >> 4U]);
+    hex.push_back(digits[byte & 0x0fU]);
+  }
+  return hex;
+}
+
+std::vector<std::uint8_t> decode_hex(const std::string& hex) {
+  const auto nibble = [](const char character) {
+    return static_cast<std::uint8_t>(character <= '9' ? character - '0' : character - 'a' + 10);
+  };
+  std::vector<std::uint8_t> bytes;
+  for (std::size_t index = 0; index < hex.size(); index += 2U) {
+    bytes.push_back(static_cast<std::uint8_t>((nibble(hex[index]) << 4U) | nibble(hex[index + 1U])));
+  }
+  return bytes;
+}
+
+// Wraps a plaintext state document in the state-file envelope the way the
+// store does, so a test can plant a document the current writer no longer
+// produces.
+std::string make_carrier(IDataProtector& protector, const std::string& plaintext_json) {
+  const std::vector<std::uint8_t> plaintext(plaintext_json.begin(), plaintext_json.end());
+  const auto protected_value = protector.protect(plaintext);
+  return "{\"format\":\"axlicense-license-state\",\"envelope_version\":1,\"protected_blob_hex\":\"" +
+         encode_hex(protected_value.bytes) + "\"}";
+}
+
+// The plaintext state document stored in a state file protected with the
+// given protector.
+std::string read_plaintext(IDataProtector& protector, const std::string& carrier) {
+  const auto protected_hex = nlohmann::json::parse(carrier).at("protected_blob_hex").get<std::string>();
+  const auto unprotected = protector.unprotect(decode_hex(protected_hex));
+  return std::string(unprotected.bytes.begin(), unprotected.bytes.end());
 }
 
 }  // namespace
@@ -269,29 +311,15 @@ TEST_CASE("oversized unsigned timestamps fail closed as corrupt") {
   AllowTestRoot security;
   WindowsLicenseStateStore store(root.path, codec, security);
 
-  const auto make_carrier = [&protector](const std::string& plaintext_json) {
-    const std::vector<std::uint8_t> plaintext(plaintext_json.begin(), plaintext_json.end());
-    const auto protected_value = protector.protect(plaintext);
-    std::string hex;
-    constexpr std::array<char, 16> digits{'0', '1', '2', '3', '4', '5', '6', '7', '8',
-                                          '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-    for (const auto byte : protected_value.bytes) {
-      hex.push_back(digits[byte >> 4U]);
-      hex.push_back(digits[byte & 0x0fU]);
-    }
-    return "{\"format\":\"axlicense-license-state\",\"envelope_version\":1,\"protected_blob_hex\":\"" + hex +
-           "\"}";
-  };
-
   // issued_at above INT64_MAX would wrap to a negative value when read as a
   // static_cast int64.
-  write_state_file(store.state_path(), make_carrier(
-      R"json({"schema_version":{"major":1,"minor":0},"state_generation":1,"credential":{"credential_id":"cred-1","license_grant_id":"grant-1","binding_id":"binding-1","device_id":"axldev_00000000000000000000000000000007","authority_revision":3,"credential_generation":7,"issued_at":18446744073709551615,"policy_version":2,"entitlements":[]}})json"));
+  write_state_file(store.state_path(), make_carrier(protector,
+      R"json({"schema_version":{"major":1,"minor":0},"state_generation":1,"credential":{"credential_id":"cred-1","license_grant_id":"grant-1","binding_id":"binding-1","device_id":"axldev_00000000000000000000000000000007","authority_revision":3,"credential_generation":7,"issued_at":18446744073709551615,"entitlements":[]}})json"));
   CHECK(store.read().outcome == StateStoreOutcome::corrupt);
 
   // not_before above INT64_MAX would wrap to -1 and fail open.
-  write_state_file(store.state_path(), make_carrier(
-      R"json({"schema_version":{"major":1,"minor":0},"state_generation":1,"credential":{"credential_id":"cred-1","license_grant_id":"grant-1","binding_id":"binding-1","device_id":"axldev_00000000000000000000000000000007","authority_revision":3,"credential_generation":7,"issued_at":100,"policy_version":2,"entitlements":[{"entitlement_id":"e","product_id":"p","right_kind":1,"grant_semantics":1,"validity":{"kind":2,"not_before":18446744073709551615,"not_after":20}}]}})json"));
+  write_state_file(store.state_path(), make_carrier(protector,
+      R"json({"schema_version":{"major":1,"minor":0},"state_generation":1,"credential":{"credential_id":"cred-1","license_grant_id":"grant-1","binding_id":"binding-1","device_id":"axldev_00000000000000000000000000000007","authority_revision":3,"credential_generation":7,"issued_at":100,"entitlements":[{"entitlement_id":"e","product_id":"p","right_kind":1,"grant_semantics":1,"validity":{"kind":2,"not_before":18446744073709551615,"not_after":20}}]}})json"));
   CHECK(store.read().outcome == StateStoreOutcome::corrupt);
 }
 
@@ -370,4 +398,22 @@ TEST_CASE("invalid credential payload is refused at encode") {
   CHECK(store.write(written) == StateStoreOutcome::unexpected_failure);
   written.credential = credential(3, 0);
   CHECK(store.write(written) == StateStoreOutcome::unexpected_failure);
+}
+
+TEST_CASE("written state file carries no channel policy version") {
+  TemporaryRoot root;
+  XorProtector protector;
+  LicenseStateCodec codec(protector);
+  AllowTestRoot security;
+  WindowsLicenseStateStore store(root.path, codec, security);
+  LicenseState written;
+  written.registration = RegistrationAssociation{.device_id = reference('7')};
+  written.credential = credential(3, 7);
+  REQUIRE(store.prepare_for_mutation() == StateStoreOutcome::ok);
+  REQUIRE(store.write(written) == StateStoreOutcome::ok);
+
+  const auto document = nlohmann::json::parse(read_plaintext(protector, read_state_file(store.state_path())));
+  const auto& credential_document = document.at("credential");
+  CHECK_FALSE(credential_document.contains("policy_version"));
+  CHECK(credential_document.size() == 8U);
 }

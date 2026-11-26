@@ -106,6 +106,8 @@ def main() -> None:
             path.write_bytes(bytes.fromhex(corpus["artifacts"][name]["hex"]))
         device_id = corpus["device_id"]
         base = [str(root), "--floor", str(floor)]
+        v1_path = str(artifact_paths["v1"])
+        held_v1 = {"hasCredential": True, "version": {"authorityRevision": 3, "credentialGeneration": 7}}
 
         # Empty machine: no credential anywhere.
         observe("status-absent", [*base, "status"], "CREDENTIAL_NOT_FOUND", False)
@@ -120,12 +122,7 @@ def main() -> None:
             raise AssertionError(f"unexpected unregistered self-report: {report['data']}")
 
         # Install before registration is rejected.
-        observe(
-            "install-unregistered",
-            [*base, "install", str(artifact_paths["v1"]), "--policy-version", "2"],
-            "CREDENTIAL_DEVICE_MISMATCH",
-            False,
-        )
+        observe("install-unregistered", [*base, "install", v1_path], "CREDENTIAL_DEVICE_MISMATCH", False)
 
         # Adopt the platform reference.
         observe("adopt", [*base, "device-register", "adopt", device_id], "OK", True)
@@ -137,31 +134,32 @@ def main() -> None:
         # Verification/binding failures.
         observe(
             "install-mismatch-device",
-            [*base, "install", str(artifact_paths["mismatch_device"]), "--policy-version", "1"],
+            [*base, "install", str(artifact_paths["mismatch_device"])],
             "CREDENTIAL_DEVICE_MISMATCH",
             False,
         )
         observe(
             "install-invalid-signature",
-            [*base, "install", str(artifact_paths["invalid_signature"]), "--policy-version", "1"],
+            [*base, "install", str(artifact_paths["invalid_signature"])],
             "CREDENTIAL_INVALID",
             False,
         )
 
-        # First install, then read the held surfaces.
-        installed = observe(
-            "install-v1", [*base, "install", str(artifact_paths["v1"]), "--policy-version", "2"], "OK", True
-        )
-        if installed["data"]["result"] != "OK" or installed["data"]["authority_revision"] != 3:
+        # First install, then read the held surfaces. Install takes the artifact
+        # path only and echoes the committed credential without channel metadata.
+        installed = observe("install-v1", [*base, "install", v1_path], "OK", True)
+        if installed["data"] != {
+            "result": "OK",
+            "credential_id": "cred-a2-v1",
+            "authority_revision": 3,
+            "credential_generation": 7,
+        }:
             raise AssertionError(f"unexpected install data: {installed['data']}")
         status = observe("status-valid", [*base, "status"], "OK", True)
         if status["data"] != {"credential_state": "valid", "authority_revision": 3, "credential_generation": 7}:
             raise AssertionError(f"unexpected valid status data: {status['data']}")
         held = observe("held-version-v1", [*base, "held-version"], "OK", True)
-        if held["data"] != {
-            "hasCredential": True,
-            "version": {"authorityRevision": 3, "credentialGeneration": 7, "policyVersion": 2},
-        }:
+        if held["data"] != held_v1:
             raise AssertionError(f"unexpected held version: {held['data']}")
         granted = observe(
             "entitlement-granted", [*base, "entitlement", "nearhub.runtime", "100"], "OK", True
@@ -172,82 +170,62 @@ def main() -> None:
         # Anti-rollback on both axes.
         observe(
             "install-stale-lower-revision",
-            [*base, "install", str(artifact_paths["stale_lower_revision"]), "--policy-version", "1"],
+            [*base, "install", str(artifact_paths["stale_lower_revision"])],
             "CREDENTIAL_STALE",
             False,
         )
         observe(
             "install-stale-lower-generation",
-            [*base, "install", str(artifact_paths["stale_lower_generation"]), "--policy-version", "1"],
+            [*base, "install", str(artifact_paths["stale_lower_generation"])],
             "CREDENTIAL_STALE",
             False,
         )
 
-        # Same version is an idempotent reinstall refreshing policyVersion.
-        idempotent = observe(
-            "install-idempotent",
-            [*base, "install", str(artifact_paths["v1"]), "--policy-version", "4"],
-            "OK",
-            True,
-        )
-        if idempotent["data"]["result"] != "OK_IDEMPOTENT":
+        # Same version is an idempotent reinstall; the held pair is unchanged.
+        idempotent = observe("install-idempotent", [*base, "install", v1_path], "OK", True)
+        if idempotent["data"] != {
+            "result": "OK_IDEMPOTENT",
+            "credential_id": "cred-a2-v1",
+            "authority_revision": 3,
+            "credential_generation": 7,
+        }:
             raise AssertionError(f"unexpected idempotent result: {idempotent['data']}")
         held = observe("held-version-idempotent", [*base, "held-version"], "OK", True)
-        if held["data"]["version"]["policyVersion"] != 4:
-            raise AssertionError(f"policyVersion not refreshed: {held['data']}")
+        if held["data"] != held_v1:
+            raise AssertionError(f"idempotent reinstall changed the held version: {held['data']}")
 
-        # Numeric and artifact input boundaries are rejected consistently on
-        # both CLI surfaces; a 20-digit UINT64_MAX stays legal.
+        # Install takes exactly one argument. The retired --policy-version flag,
+        # a missing argument and an extra argument are command-invalid.
         observe(
-            "install-policy-version-zero",
-            [*base, "install", str(artifact_paths["v1"]), "--policy-version", "0"],
+            "install-retired-policy-version-flag",
+            [*base, "install", v1_path, "--policy-version", "1"],
             "COMMAND_INVALID",
             False,
         )
+        observe("install-missing-artifact-argument", [*base, "install"], "COMMAND_INVALID", False)
         observe(
-            "install-policy-version-overflow",
-            [*base, "install", str(artifact_paths["v1"]), "--policy-version", "99999999999999999999"],
+            "install-extra-argument",
+            [*base, "install", v1_path, "extra"],
             "COMMAND_INVALID",
             False,
         )
-        max_install = observe(
-            "install-policy-version-max",
-            [*base, "install", str(artifact_paths["v1"]), "--policy-version", "18446744073709551615"],
-            "OK",
-            True,
-        )
-        if max_install["data"]["result"] != "OK_IDEMPOTENT":
-            raise AssertionError(f"UINT64_MAX should be an idempotent reinstall: {max_install['data']}")
-        held = observe("held-version-max", [*base, "held-version"], "OK", True)
-        if held["data"]["version"]["policyVersion"] != 18446744073709551615:
-            raise AssertionError(f"UINT64_MAX policy version not persisted: {held['data']}")
+        # Artifact input boundaries.
         observe(
             "install-artifact-missing",
-            [*base, "install", str(artifacts / "missing.cbor"), "--policy-version", "1"],
+            [*base, "install", str(artifacts / "missing.cbor")],
             "CREDENTIAL_INVALID",
             False,
         )
         empty_artifact = artifacts / "empty.cbor"
         empty_artifact.write_bytes(b"")
-        observe(
-            "install-artifact-empty",
-            [*base, "install", str(empty_artifact), "--policy-version", "1"],
-            "CREDENTIAL_INVALID",
-            False,
-        )
+        observe("install-artifact-empty", [*base, "install", str(empty_artifact)], "CREDENTIAL_INVALID", False)
 
         # Newer revision, then the revocation credential clears entitlements.
-        observe(
-            "install-v2-new", [*base, "install", str(artifact_paths["v2_new"]), "--policy-version", "3"], "OK", True
-        )
+        observe("install-v2-new", [*base, "install", str(artifact_paths["v2_new"])], "OK", True)
         held = observe("held-version-v2", [*base, "held-version"], "OK", True)
-        if held["data"]["version"] != {
-            "authorityRevision": 4,
-            "credentialGeneration": 8,
-            "policyVersion": 3,
-        }:
+        if held["data"]["version"] != {"authorityRevision": 4, "credentialGeneration": 8}:
             raise AssertionError(f"unexpected v2 held version: {held['data']}")
-        observe("install-clear", [*base, "install", str(artifact_paths["clear"]), "--policy-version", "5"], "OK", True)
+        observe("install-clear", [*base, "install", str(artifact_paths["clear"])], "OK", True)
         status = observe("status-cleared", [*base, "status"], "OK", True)
         if status["data"]["credential_state"] != "valid" or status["data"]["authority_revision"] != 5:
             raise AssertionError(f"unexpected cleared status: {status['data']}")
@@ -276,7 +254,7 @@ def main() -> None:
 
     report = {
         "artifact_id": "EV-A2-04-cli-contract",
-        "authority_revision": "P20-v3-A2",
+        "authority_revision": "P20-v5-A2",
         "command_or_runner": "python client/tests/test_a2_cli.py",
         "execution_environment": "Windows direct process creation",
         "failures": failures,
