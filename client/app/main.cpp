@@ -185,7 +185,8 @@ int main(const int argc, const char* const argv[]) {
       const std::vector<std::string_view> args(argv + 2, argv + argc);
       return device_register_command(args);
     }
-    if (command == "install" && argc == 3) {
+    // The retired --policy-version flag is never an artifact path.
+    if (command == "install" && argc == 3 && std::string_view(argv[2]) != "--policy-version") {
       return install_command(argv[2]);
     }
     if (command == "held-version" && argc == 2) {

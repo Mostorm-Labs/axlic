@@ -65,6 +65,8 @@ def main() -> None:
             raise AssertionError(f"{case_id}: success returned {returncode}")
         if not expected_ok and returncode == 0:
             raise AssertionError(f"{case_id}: failure returned zero")
+        if expected_code == "COMMAND_INVALID" and returncode != 2:
+            raise AssertionError(f"{case_id}: COMMAND_INVALID must exit 2, got {returncode}")
         # Keep the observable data in the scan set so the leak check below
         # covers the actual command output, not just locally built constants.
         observations.append(
@@ -194,21 +196,32 @@ def main() -> None:
         if held["data"] != held_v1:
             raise AssertionError(f"idempotent reinstall changed the held version: {held['data']}")
 
-        # Install takes exactly one argument. The retired --policy-version flag,
-        # a missing argument and an extra argument are command-invalid.
-        observe(
-            "install-retired-policy-version-flag",
-            [*base, "install", v1_path, "--policy-version", "1"],
-            "COMMAND_INVALID",
-            False,
-        )
-        observe("install-missing-artifact-argument", [*base, "install"], "COMMAND_INVALID", False)
-        observe(
-            "install-extra-argument",
-            [*base, "install", v1_path, "extra"],
-            "COMMAND_INVALID",
-            False,
-        )
+        # Install takes exactly one argument. The retired --policy-version flag
+        # (with its value or alone), a missing argument and an extra argument are
+        # command-invalid.
+        shape_cases = [
+            ("install-retired-policy-version-flag", ["install", v1_path, "--policy-version", "1"]),
+            ("install-lone-retired-flag", ["install", "--policy-version"]),
+            ("install-missing-artifact-argument", ["install"]),
+            ("install-extra-argument", ["install", v1_path, "extra"]),
+        ]
+        for case_id, tail in shape_cases:
+            observe(case_id, [*base, *tail], "COMMAND_INVALID", False)
+        # Those rejections happen at dispatch, before any local state is read or
+        # written: on a root whose state file cannot be decoded they still answer
+        # COMMAND_INVALID, and the file is left byte-identical.
+        unreadable_root = root / "unreadable-state"
+        unreadable_root.mkdir()
+        unreadable_state = unreadable_root / "license-state.v1.json"
+        unreadable_state.write_bytes(b"not a state file")
+        unreadable_base = [str(unreadable_root), "--floor", str(floor)]
+        returncode, result = run(args.exe, [*unreadable_base, "status"])
+        if returncode != 3 or result["code"] != "LOCAL_STATE_CORRUPT":
+            raise AssertionError(f"the unreadable state file must surface through status: {returncode} {result}")
+        for case_id, tail in shape_cases:
+            observe(f"{case_id}-unreadable-state", [*unreadable_base, *tail], "COMMAND_INVALID", False)
+        if unreadable_state.read_bytes() != b"not a state file":
+            raise AssertionError("a rejected install command line touched the state file")
         # Artifact input boundaries.
         observe(
             "install-artifact-missing",

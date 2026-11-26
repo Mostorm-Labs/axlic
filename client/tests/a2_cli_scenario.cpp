@@ -170,7 +170,8 @@ int main(const int argc, const char* const argv[]) {
     std::cout << rendered.json << '\n';
     return rendered.exit_code;
   }
-  if (command == "install" && args.size() == 1U) {
+  // The retired --policy-version flag is never an artifact path.
+  if (command == "install" && args.size() == 1U && args[0] != "--policy-version") {
     const auto artifact = axlic::core::read_artifact_file(std::string(args[0]));
     if (!artifact) {
       return invalid_artifact();
