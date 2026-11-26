@@ -1,13 +1,13 @@
 {
   "schema_version": "0.6",
   "projection_basis": {
-    "repository_revision": "81370f31aac0af1e9444a831f89bee781dff3ffd",
+    "repository_revision": "9112497df2d73fbbecf65ba4dcf950d5285f6e7c",
     "authority_source": "repository",
     "manifests": ["project.json","authorities.json","gates.json","evidence.json","integrations.json"]
   },
-  "active_stage": "AXL-V1-R1 Gate-closed (D-110); repository integration pending user instruction",
-  "earliest_untrusted_layer": "integration",
-  "recommended_stage": "repository integration closure",
+  "active_stage": "awaiting successor definition (host-bridge integration follow-up per D-106/D-108/D-111)",
+  "earliest_untrusted_layer": "authority",
+  "recommended_stage": "P30",
   "recommended_owner": "aegis",
   "authority_migration": {
     "status": "migration_complete",
@@ -19,7 +19,8 @@
   "integration_conformance": [
     {"integration_id":"INT-AXL-V1-A0","conformance":"conforming"},
     {"integration_id":"INT-AXL-V1-A1","conformance":"conforming"},
-    {"integration_id":"INT-AXL-V1-A2","conformance":"conforming"}
+    {"integration_id":"INT-AXL-V1-A2","conformance":"conforming"},
+    {"integration_id":"INT-AXL-V1-R1","conformance":"conforming"}
   ],
   "nonconforming_integrations": [],
   "findings": [
@@ -55,6 +56,7 @@
     "No deterministic tools.aegis_state implementation was found in the inspected repository tree, so this projection must be revalidated when deterministic state tooling is introduced.",
     "D-108 refresh (2026-11-24): AXL-V1-A2 is Gate-closed (D-107) and repository-integrated (INT-AXL-V1-A2 bound to D-108, conforming reviewed-delta integration at main@ed76d7d2bbe45f2bbb281412a3b868022ccb9223). The earlier M0 statement that active_stage remains P31 AXL-V1-A2 Task Packaging is superseded by this refresh; active_stage is now awaiting successor definition (host-bridge integration follow-up per the D-106/D-108 boundary) and no P31 successor is authorized.",
     "D-109 refresh (2026-11-25): the user authorized the AXL-V1-R1 Publish Pipeline with the two verification public keys committed to the repository. D-109 supersedes the packaging-time signing-backend export recorded in P30 v2/P15 v2/P20 v3 (P30 is now v3, P15 v3, P20 v4) and removes tools/fetch_trust_floor.py; the AXL-V1-R1 P31 package is frozen against main@81370f31aac0af1e9444a831f89bee781dff3ffd on execution branch codex/axl-v1-r1-publish. The earlier statement that no P31 successor is authorized is superseded by this refresh: active_stage is now P32 AXL-V1-R1 Implementation; the host-bridge integration follow-up remains successor definition under user instruction.",
-    "D-110 refresh (2026-11-25): AXL-V1-R1 is Gate-closed with PASS_WITH_FINDINGS on result revision f9e8c2e96bfd9fff3a8c1fa89a8f3fa292546ecf (hosted dual-environment run 45627517396 green on the frozen toolchain). This supersedes the D-109 statement that active_stage is P32 AXL-V1-R1 Implementation: the result awaits repository integration (merge into main and the INT-AXL-V1-R1 registration) under user instruction, and the first test-channel publish and first production release are corroborative follow-ups. The host-bridge integration follow-up remains successor definition under user instruction."
+    "D-110 refresh (2026-11-25): AXL-V1-R1 is Gate-closed with PASS_WITH_FINDINGS on result revision f9e8c2e96bfd9fff3a8c1fa89a8f3fa292546ecf (hosted dual-environment run 45627517396 green on the frozen toolchain). This supersedes the D-109 statement that active_stage is P32 AXL-V1-R1 Implementation: the result awaits repository integration (merge into main and the INT-AXL-V1-R1 registration) under user instruction, and the first test-channel publish and first production release are corroborative follow-ups. The host-bridge integration follow-up remains successor definition under user instruction.",
+    "D-111 refresh (2026-11-26): AXL-V1-R1 is repository-integrated (INT-AXL-V1-R1 bound to D-110, conforming exact-result integration at main@9112497df2d73fbbecf65ba4dcf950d5285f6e7c; D-111 is the current decision of AXL-V1-R1-P34). This supersedes the D-110 statement that the result awaits repository integration: the first test-channel publish ran on the merged main (run 45738678112, Pre-release v0.1.0-test.20261126.1) and active_stage is now awaiting successor definition. No P31 successor is authorized; the first production release and the first platform-signed credential installed into a test build remain corroborative items."
   ]
 }

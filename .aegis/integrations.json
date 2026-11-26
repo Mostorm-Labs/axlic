@@ -30,6 +30,16 @@
       "integrated_revision":"ed76d7d2bbe45f2bbb281412a3b868022ccb9223",
       "gate_decision_binding":{"type":"bound","gate_decision_id":"D-108"},
       "evidence_ids":["EV-GIT-A2-RESULT","EV-GIT-A2-INTEGRATION","EV-A2-HOSTED-RERUN","EV-GIT-A2-INTEGRATION-AUTHORITY"]
+    },
+    {
+      "id":"INT-AXL-V1-R1",
+      "kind":"merge",
+      "ref":"4bdb7fac5a7d1e379cb27d10dac40c00d49140ff",
+      "target_ref":"main",
+      "status":"integrated",
+      "integrated_revision":"9112497df2d73fbbecf65ba4dcf950d5285f6e7c",
+      "gate_decision_binding":{"type":"bound","gate_decision_id":"D-110"},
+      "evidence_ids":["EV-GIT-R1-RESULT","EV-GIT-R1-INTEGRATION","EV-R1-TEST-PUBLISH","EV-R1-INTEGRATION-AUTHORITY"]
     }
   ]
 }

@@ -99,6 +99,9 @@
     {"id":"EV-R1-HOSTED-RUN","status":"available","kind":"gate-evidence","ref":"run 45627517396/jobs 139251571153,139251570782@f9e8c2e96bfd9fff3a8c1fa89a8f3fa292546ecf (D-110 hosted dual-environment evidence on the frozen toolchain, publishing disabled, every build step green, ctest 102/102)"},
     {"id":"EV-R1-HOSTED-PACKAGES","status":"available","kind":"gate-evidence","ref":"sha256:1ff0f37dfb37c7b3da6f950b259a7f75ea4c93471b11e99a117f16453d0ffa7a axlic-0.1.0-win-x64.zip; sha256:95ce283676bdf16f19bb6eb2a0e0cd1ecf3fe7e41c96e50c8e1439e2d8c36fa1 axlic-0.1.0-test.20261125.4-win-x64.zip (run 45627517396, both re-verified locally with tools/package_axlic.py verify)"},
     {"id":"EV-R1-LOCAL-EVIDENCE","status":"available","kind":"gate-evidence","ref":"f9e8c2e local: 106 tooling unit and contract tests; ctest 102/102 on default, test-key and production-key builds; v143 14.44 toolset build; mutation checks over the tools and the workflow files (D-110)"},
-    {"id":"EV-R1-INDEPENDENT-REVIEWS","status":"available","kind":"gate-review","ref":"independent code review 81370f3..dd64060, P34 review 81370f3..60a5ede and incremental review of 055f630, all read-only (D-110; summarized in the decision log)"}
+    {"id":"EV-R1-INDEPENDENT-REVIEWS","status":"available","kind":"gate-review","ref":"independent code review 81370f3..dd64060, P34 review 81370f3..60a5ede and incremental review of 055f630, all read-only (D-110; summarized in the decision log)"},
+    {"id":"EV-GIT-R1-INTEGRATION","status":"available","kind":"repository-revision","ref":"9112497df2d73fbbecf65ba4dcf950d5285f6e7c"},
+    {"id":"EV-R1-TEST-PUBLISH","status":"available","kind":"gate-evidence","ref":"run 45738678112/jobs 139638035125,139639190081@9112497df2d73fbbecf65ba4dcf950d5285f6e7c (D-111 first test-channel publish: Pre-release v0.1.0-test.20261126.1; sha256:f878baf2e983577cd1cfb782e784ae32f85bf55bbf9acd58f8f291a3bd0f5498 axlic-0.1.0-test.20261126.1-win-x64.zip, re-verified locally after download)"},
+    {"id":"EV-R1-INTEGRATION-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/implementation/R1/repository-integration-closure.md"}
   ]
 }
