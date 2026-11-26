@@ -1,11 +1,11 @@
 # AXL-V1-R2 P31 Task Package — Remove channel-side policyVersion
 
-status: FROZEN_READY_FOR_P32
+status: P32_COMPLETE_GATE_D113_PASS_WITH_FINDINGS
 stage_owner: aegis-implementation
 process_profile: Full
 created_at: 2026-11-26
-result_revision: null
-gate_decision: null
+result_revision: 208502409bbf768098f0a34e42a5f49bd8e716fa
+gate_decision: D-113 (PASS_WITH_FINDINGS, 2026-11-26)
 
 ## Repository identity
 
@@ -48,8 +48,8 @@ Remove the channel-side policyVersion from the Gate-closed A2 library plane. `ax
 ## Frozen tests / oracles
 
 - EV-A2-01 as revised in P20 v5 (blocking) — installation decision matrix; the same-version reinstall leaves the stored credential unchanged. Signed fixtures come from the unchanged `reference/tools/a2_reference.py` / `reference/vectors/a2/install.json`.
-- EV-A2-04 as revised in P20 v5 (blocking) — process-level CLI contract over the scenario executable: version pair only, no flag, three command-shape cases.
-- EV-A2-06 (blocking) — the legacy credential document reads as valid state; the written document carries no `policy_version`.
+- EV-A2-04 as revised in P20 v5 (blocking) — process-level CLI contract over the scenario executable: version pair only, no flag, and four command-shape cases (retired flag with its value, lone retired flag, missing argument, extra argument), each run on a readable and on an unreadable state root.
+- EV-A2-06 (blocking) — the legacy credential document reads as valid state and is written back without the key; the written document carries no `policy_version`.
 - EV-A2-05 (blocking) — zero regression: full `ctest`, offline boundary, no external repository references.
 - Corroborative: a cross-version run with a pre-change scenario executable (old state read by the new build; new state rejected by the old build without rewriting); the negative dispatch check on the production executable.
 
