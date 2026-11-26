@@ -26,7 +26,7 @@ InstallCode state_code(const StateStoreOutcome outcome) {
   return InstallCode::internal_error;
 }
 
-InstalledCredential to_installed(const wire::Credential& credential, const std::uint64_t policy_version) {
+InstalledCredential to_installed(const wire::Credential& credential) {
   return InstalledCredential{
       .credential_id = credential.credential_id,
       .license_grant_id = credential.license_grant_id,
@@ -36,7 +36,6 @@ InstalledCredential to_installed(const wire::Credential& credential, const std::
       .credential_generation = credential.credential_generation,
       .issued_at = credential.issued_at,
       .entitlements = credential.entitlements,
-      .policy_version = policy_version,
   };
 }
 
@@ -102,7 +101,7 @@ InstallResult install_credential(
   }
 
   auto next = current;
-  next.credential = to_installed(candidate, request.policy_version);
+  next.credential = to_installed(candidate);
   const auto written = state.write(next);
   if (written != StateStoreOutcome::ok) {
     return {state_code(written), false};
@@ -117,7 +116,6 @@ std::optional<HeldVersion> held_version(const LicenseState& state) {
   return HeldVersion{
       .authority_revision = state.credential->authority_revision,
       .credential_generation = state.credential->credential_generation,
-      .policy_version = state.credential->policy_version,
   };
 }
 

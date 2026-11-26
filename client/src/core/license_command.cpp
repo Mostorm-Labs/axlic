@@ -213,7 +213,6 @@ RenderedCommand render_install(
     data["credential_id"] = result.installed->credential_id;
     data["authority_revision"] = result.installed->authority_revision;
     data["credential_generation"] = result.installed->credential_generation;
-    data["policy_version"] = result.installed->policy_version;
   }
   return emit(command_result(true, "OK", "none", false, std::move(data)), kExitOk);
 }
@@ -237,8 +236,7 @@ RenderedCommand render_held_version(ILicenseStateStore& license_state) {
                   Json{{"hasCredential", true},
                        {"version",
                         {{"authorityRevision", held->authority_revision},
-                         {"credentialGeneration", held->credential_generation},
-                         {"policyVersion", held->policy_version}}}}),
+                         {"credentialGeneration", held->credential_generation}}}}),
               kExitOk);
 }
 

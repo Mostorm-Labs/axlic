@@ -21,7 +21,6 @@ axlic::core::InstalledCredential credential(const std::uint64_t revision, const 
       .credential_generation = generation,
       .issued_at = 100,
       .entitlements = {},
-      .policy_version = 1,
   };
 }
 
@@ -44,13 +43,14 @@ TEST_CASE("registration and credential are independent halves") {
   CHECK(state.credential->credential_generation == 7U);
 }
 
-TEST_CASE("installed credential equality compares payload fields and policy version") {
+TEST_CASE("installed credential equality compares payload fields") {
   auto left = credential(3, 7);
   auto right = credential(3, 7);
   CHECK(left == right);
-  right.policy_version = 2;
-  CHECK_FALSE(left == right);
   right = credential(3, 8);
+  CHECK_FALSE(left == right);
+  right = credential(3, 7);
+  right.entitlements.push_back(axlic::wire::Entitlement{.entitlement_id = "launcher.runtime"});
   CHECK_FALSE(left == right);
 }
 

@@ -106,7 +106,6 @@ InstalledCredential credential(const std::uint64_t revision, const std::uint64_t
       .credential_generation = generation,
       .issued_at = 100,
       .entitlements = {std::move(runtime), std::move(bounded)},
-      .policy_version = 2,
   };
 }
 
@@ -198,7 +197,6 @@ TEST_CASE("license state round-trips registration and credential") {
   CHECK(restored.authority_revision == original.authority_revision);
   CHECK(restored.credential_generation == original.credential_generation);
   CHECK(restored.issued_at == original.issued_at);
-  CHECK(restored.policy_version == original.policy_version);
   REQUIRE(restored.entitlements.size() == 2U);
   CHECK(restored.entitlements[0].entitlement_id == "launcher.runtime");
   CHECK(restored.entitlements[0].grant_semantics == axlic::wire::GrantSemantics::presence);
@@ -416,4 +414,33 @@ TEST_CASE("written state file carries no channel policy version") {
   const auto& credential_document = document.at("credential");
   CHECK_FALSE(credential_document.contains("policy_version"));
   CHECK(credential_document.size() == 8U);
+}
+
+TEST_CASE("legacy state file with a channel policy version still reads as valid") {
+  TemporaryRoot root;
+  XorProtector protector;
+  LicenseStateCodec codec(protector);
+  AllowTestRoot security;
+  WindowsLicenseStateStore store(root.path, codec, security);
+  // The document exactly as the build before the key was retired wrote it for
+  // the reference fixtures: nine credential keys, policy_version among them.
+  write_state_file(store.state_path(), make_carrier(protector,
+      R"json({"credential":{"authority_revision":3,"binding_id":"binding-a2","credential_generation":7,"credential_id":"cred-a2-v1","device_id":"axldev_a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2","entitlements":[{"entitlement_id":"nearhub.runtime","grant_semantics":1,"product_id":"nearhub","right_kind":1,"validity":{"kind":1}},{"entitlement_id":"nearhub.seats","grant_semantics":2,"max_u64":5,"product_id":"nearhub","right_kind":1,"validity":{"kind":2,"not_after":2000000000,"not_before":10}}],"issued_at":1767225600,"license_grant_id":"grant-a2","policy_version":2},"registration":{"device_id":"axldev_a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2"},"schema_version":{"major":1,"minor":0},"state_generation":1})json"));
+
+  const auto read = store.read();
+  REQUIRE(read.outcome == StateStoreOutcome::ok);
+  REQUIRE(read.state.has_value());
+  CHECK(read.state->registration->device_id.to_string() == "axldev_a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2");
+  const auto& restored = *read.state->credential;
+  REQUIRE(restored.credential_id == "cred-a2-v1");
+  CHECK(restored.license_grant_id == "grant-a2");
+  CHECK(restored.binding_id == "binding-a2");
+  CHECK(restored.authority_revision == 3U);
+  CHECK(restored.credential_generation == 7U);
+  CHECK(restored.issued_at == 1767225600);
+  REQUIRE(restored.entitlements.size() == 2U);
+  CHECK(restored.entitlements[0].entitlement_id == "nearhub.runtime");
+  CHECK(restored.entitlements[1].entitlement_id == "nearhub.seats");
+  CHECK(restored.entitlements[1].max_u64 == 5U);
+  CHECK(restored.entitlements[1].validity.not_after == 2000000000);
 }

@@ -106,17 +106,17 @@ Fixture fixture() {
   return result;
 }
 
-InstallRequest request(const Fixture& source, const char* id, const std::uint64_t policy_version) {
-  return InstallRequest{.artifact = source.artifact(id), .policy_version = policy_version};
+InstallRequest request(const Fixture& source, const char* id) {
+  return InstallRequest{.artifact = source.artifact(id)};
 }
 
-void install_ok(const Fixture& source, const char* id, const std::uint64_t policy_version) {
+void install_ok(const Fixture& source, const char* id) {
   FakeStateStore store;
   store.exists = true;
   store.state.registration = RegistrationAssociation{.device_id = source.device};
   FakeLock lock;
   const auto result =
-      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, id, policy_version));
+      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, id));
   CHECK(result.code == InstallCode::ok);
   CHECK_FALSE(result.retryable);
 }
@@ -128,7 +128,7 @@ TEST_CASE("installation requires an existing registration association") {
   FakeStateStore store;
   FakeLock lock;
   const auto result =
-      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1", 1U));
+      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1"));
   CHECK(result.code == InstallCode::credential_device_mismatch);
   CHECK_FALSE(store.state.credential.has_value());
 }
@@ -140,31 +140,30 @@ TEST_CASE("installation rejects an artifact bound to another device") {
   store.state.registration = RegistrationAssociation{.device_id = source.device};
   FakeLock lock;
   const auto result =
-      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "mismatch_device", 1U));
+      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "mismatch_device"));
   CHECK(result.code == InstallCode::credential_device_mismatch);
   CHECK_FALSE(store.state.credential.has_value());
 }
 
-TEST_CASE("installation commits the payload fields and channel policy version") {
+TEST_CASE("installation commits the payload fields") {
   const auto source = fixture();
-  install_ok(source, "v1", 2U);
+  install_ok(source, "v1");
 }
 
-TEST_CASE("installed credential carries payload identity, entitlements and policy version") {
+TEST_CASE("installed credential carries payload identity and entitlements") {
   const auto source = fixture();
   FakeStateStore store;
   store.exists = true;
   store.state.registration = RegistrationAssociation{.device_id = source.device};
   FakeLock lock;
   REQUIRE(axlic::core::install_credential(
-              store, lock, source.trusted_keys, request(source, "v1", 2U))
+              store, lock, source.trusted_keys, request(source, "v1"))
               .code == InstallCode::ok);
   const auto& stored = store.state.credential;
   REQUIRE(stored.has_value());
   CHECK(stored->credential_id == "cred-a2-v1");
   CHECK(stored->authority_revision == 3U);
   CHECK(stored->credential_generation == 7U);
-  CHECK(stored->policy_version == 2U);
   CHECK(stored->device_id == source.device.to_string());
   REQUIRE(stored->entitlements.size() == 2U);
   CHECK(stored->entitlements[0].entitlement_id == "nearhub.runtime");
@@ -179,7 +178,7 @@ TEST_CASE("empty entitlements revocation credential installs legally") {
   store.state.registration = RegistrationAssociation{.device_id = source.device};
   FakeLock lock;
   const auto result =
-      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "clear", 3U));
+      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "clear"));
   CHECK(result.code == InstallCode::ok);
   REQUIRE(store.state.credential.has_value());
   CHECK(store.state.credential->entitlements.empty());
@@ -195,10 +194,10 @@ TEST_CASE("lower revision is rejected as stale regardless of generation") {
   store.state.registration = RegistrationAssociation{.device_id = source.device};
   FakeLock lock;
   REQUIRE(axlic::core::install_credential(
-              store, lock, source.trusted_keys, request(source, "v1", 1U))
+              store, lock, source.trusted_keys, request(source, "v1"))
               .code == InstallCode::ok);
   const auto result = axlic::core::install_credential(
-      store, lock, source.trusted_keys, request(source, "stale_lower_revision", 1U));
+      store, lock, source.trusted_keys, request(source, "stale_lower_revision"));
   CHECK(result.code == InstallCode::credential_stale);
   CHECK(store.state.credential->credential_id == "cred-a2-v1");
 }
@@ -210,27 +209,27 @@ TEST_CASE("same revision with lower generation is rejected as stale") {
   store.state.registration = RegistrationAssociation{.device_id = source.device};
   FakeLock lock;
   REQUIRE(axlic::core::install_credential(
-              store, lock, source.trusted_keys, request(source, "v1", 1U))
+              store, lock, source.trusted_keys, request(source, "v1"))
               .code == InstallCode::ok);
   const auto result = axlic::core::install_credential(
-      store, lock, source.trusted_keys, request(source, "stale_lower_generation", 1U));
+      store, lock, source.trusted_keys, request(source, "stale_lower_generation"));
   CHECK(result.code == InstallCode::credential_stale);
 }
 
-TEST_CASE("same version reinstall is idempotent and refreshes policy version") {
+TEST_CASE("same version reinstall is idempotent") {
   const auto source = fixture();
   FakeStateStore store;
   store.exists = true;
   store.state.registration = RegistrationAssociation{.device_id = source.device};
   FakeLock lock;
   REQUIRE(axlic::core::install_credential(
-              store, lock, source.trusted_keys, request(source, "v1", 1U))
+              store, lock, source.trusted_keys, request(source, "v1"))
               .code == InstallCode::ok);
+  const auto committed = store.state;
   const auto result =
-      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1", 4U));
+      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1"));
   CHECK(result.code == InstallCode::ok_idempotent);
-  REQUIRE(store.state.credential.has_value());
-  CHECK(store.state.credential->policy_version == 4U);
+  CHECK(store.state == committed);
 }
 
 TEST_CASE("higher revision and same-revision higher generation both install") {
@@ -240,17 +239,17 @@ TEST_CASE("higher revision and same-revision higher generation both install") {
   store.state.registration = RegistrationAssociation{.device_id = source.device};
   FakeLock lock;
   REQUIRE(axlic::core::install_credential(
-              store, lock, source.trusted_keys, request(source, "v1", 1U))
+              store, lock, source.trusted_keys, request(source, "v1"))
               .code == InstallCode::ok);
   SECTION("same revision higher generation") {
     CHECK(axlic::core::install_credential(
-              store, lock, source.trusted_keys, request(source, "same_rev_higher_gen", 1U))
+              store, lock, source.trusted_keys, request(source, "same_rev_higher_gen"))
               .code == InstallCode::ok);
     CHECK(store.state.credential->credential_generation == 8U);
   }
   SECTION("higher revision") {
     CHECK(axlic::core::install_credential(
-              store, lock, source.trusted_keys, request(source, "v2_new", 1U))
+              store, lock, source.trusted_keys, request(source, "v2_new"))
               .code == InstallCode::ok);
     CHECK(store.state.credential->authority_revision == 4U);
   }
@@ -263,7 +262,7 @@ TEST_CASE("tampered signature is rejected as invalid") {
   store.state.registration = RegistrationAssociation{.device_id = source.device};
   FakeLock lock;
   const auto result = axlic::core::install_credential(
-      store, lock, source.trusted_keys, request(source, "invalid_signature", 1U));
+      store, lock, source.trusted_keys, request(source, "invalid_signature"));
   CHECK(result.code == InstallCode::credential_invalid);
   CHECK_FALSE(store.state.credential.has_value());
 }
@@ -275,7 +274,7 @@ TEST_CASE("empty trust keyring fails closed as unsupported") {
   store.state.registration = RegistrationAssociation{.device_id = source.device};
   FakeLock lock;
   const std::vector<axlic::wire::TrustedPublicKey> empty;
-  const auto result = axlic::core::install_credential(store, lock, empty, request(source, "v1", 1U));
+  const auto result = axlic::core::install_credential(store, lock, empty, request(source, "v1"));
   CHECK(result.code == InstallCode::credential_unsupported);
   CHECK_FALSE(store.state.credential.has_value());
 }
@@ -288,7 +287,7 @@ TEST_CASE("busy lock maps to a retryable result before any verification") {
   FakeLock lock;
   lock.busy = true;
   const auto result =
-      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1", 1U));
+      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1"));
   CHECK(result.code == InstallCode::local_state_busy);
   CHECK(result.retryable);
   CHECK(lock.releases == 0U);
@@ -302,7 +301,7 @@ TEST_CASE("access-denied lock maps to the privilege result") {
   FakeLock lock;
   lock.denied = true;
   const auto result =
-      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1", 1U));
+      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1"));
   CHECK(result.code == InstallCode::local_write_privilege_required);
   CHECK_FALSE(result.retryable);
   CHECK(lock.releases == 0U);
@@ -315,24 +314,24 @@ TEST_CASE("install result echoes the committed credential") {
   store.state.registration = RegistrationAssociation{.device_id = source.device};
   FakeLock lock;
   const auto first =
-      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1", 2U));
+      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1"));
   REQUIRE(first.code == InstallCode::ok);
   REQUIRE(first.installed.has_value());
   CHECK(first.installed->authority_revision == 3U);
   CHECK(first.installed->credential_generation == 7U);
-  CHECK(first.installed->policy_version == 2U);
   REQUIRE(store.state.credential.has_value());
+  CHECK(*first.installed == *store.state.credential);
 
-  // Idempotent same-version reinstall still echoes (with the refreshed
-  // policy version) so the CLI response never re-reads state.
+  // Idempotent same-version reinstall still echoes the committed credential
+  // so the CLI response never re-reads state.
   const auto again =
-      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1", 5U));
+      axlic::core::install_credential(store, lock, source.trusted_keys, request(source, "v1"));
   REQUIRE(again.code == InstallCode::ok_idempotent);
   REQUIRE(again.installed.has_value());
-  CHECK(again.installed->policy_version == 5U);
+  CHECK(*again.installed == *store.state.credential);
 }
 
-TEST_CASE("held version reflects the stored triple or nothing") {
+TEST_CASE("held version reflects the stored pair or nothing") {
   const auto source = fixture();
   FakeStateStore store;
   store.exists = true;
@@ -340,13 +339,12 @@ TEST_CASE("held version reflects the stored triple or nothing") {
   FakeLock lock;
   CHECK_FALSE(axlic::core::held_version(store.state).has_value());
   REQUIRE(axlic::core::install_credential(
-              store, lock, source.trusted_keys, request(source, "v1", 2U))
+              store, lock, source.trusted_keys, request(source, "v1"))
               .code == InstallCode::ok);
   const auto held = axlic::core::held_version(store.state);
   REQUIRE(held.has_value());
   CHECK(held->authority_revision == 3U);
   CHECK(held->credential_generation == 7U);
-  CHECK(held->policy_version == 2U);
 }
 
 TEST_CASE("runtime license from installed credential answers entitlements offline") {
@@ -356,7 +354,7 @@ TEST_CASE("runtime license from installed credential answers entitlements offlin
   store.state.registration = RegistrationAssociation{.device_id = source.device};
   FakeLock lock;
   REQUIRE(axlic::core::install_credential(
-              store, lock, source.trusted_keys, request(source, "v1", 2U))
+              store, lock, source.trusted_keys, request(source, "v1"))
               .code == InstallCode::ok);
   const auto runtime = axlic::core::RuntimeLicense::from_installed(*store.state.credential);
   const auto status = runtime.status();

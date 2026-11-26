@@ -37,22 +37,20 @@ struct InstallRequest {
   // Owned artifact bytes: the request outlives temporary buffers at the call
   // site, so the payload must not be a borrowed span.
   std::vector<std::uint8_t> artifact;
-  std::uint64_t policy_version{};
 };
 
-// Held-version triple reported to the host for version probes and
+// Held-version pair reported to the host for version probes and
 // reconciliation.
 struct HeldVersion {
   std::uint64_t authority_revision{};
   std::uint64_t credential_generation{};
-  std::uint64_t policy_version{};
 };
 
 // Frozen installation pipeline: mutation lock -> read/prepare -> A0 verify ->
 // payload device_id vs local registration association -> (authority_revision,
 // credential_generation) lexicographic high-watermark (same version is an
-// idempotent reinstall refreshing policy_version; an empty-entitlements
-// revocation credential is a legal install object) -> atomic commit.
+// idempotent reinstall; an empty-entitlements revocation credential is a
+// legal install object) -> atomic commit.
 // The sole version-rollback rejection class is credential_stale.
 [[nodiscard]] InstallResult install_credential(
     ILicenseStateStore& state,
