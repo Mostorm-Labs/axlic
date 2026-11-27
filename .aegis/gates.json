@@ -15,13 +15,14 @@
     {"id":"D-108","gate_id":"AXL-V1-A2-P34","verdict":"PASS_WITH_FINDINGS","status":"current","evidence_ids":["EV-GIT-A2-RESULT","EV-A2-HOSTED-RERUN","EV-GIT-A2-INTEGRATION"]},
     {"id":"D-110","gate_id":"AXL-V1-R1-P34","verdict":"PASS_WITH_FINDINGS","status":"historical","evidence_ids":["EV-GIT-R1-RESULT","EV-R1-HOSTED-RUN","EV-R1-HOSTED-PACKAGES","EV-R1-LOCAL-EVIDENCE","EV-R1-INDEPENDENT-REVIEWS"]},
     {"id":"D-111","gate_id":"AXL-V1-R1-P34","verdict":"PASS_WITH_FINDINGS","status":"current","evidence_ids":["EV-GIT-R1-INTEGRATION","EV-R1-TEST-PUBLISH","EV-R1-INTEGRATION-AUTHORITY"]},
-    {"id":"D-113","gate_id":"AXL-V1-R2-P34","verdict":"PASS_WITH_FINDINGS","status":"current","evidence_ids":["EV-GIT-R2-RESULT","EV-R2-HOSTED-RUN","EV-R2-LOCAL-EVIDENCE","EV-R2-INDEPENDENT-REVIEW"]}
+    {"id":"D-113","gate_id":"AXL-V1-R2-P34","verdict":"PASS_WITH_FINDINGS","status":"historical","evidence_ids":["EV-GIT-R2-RESULT","EV-R2-HOSTED-RUN","EV-R2-LOCAL-EVIDENCE","EV-R2-INDEPENDENT-REVIEW"]},
+    {"id":"D-114","gate_id":"AXL-V1-R2-P34","verdict":"PASS_WITH_FINDINGS","status":"current","evidence_ids":["EV-GIT-R2-INTEGRATION","EV-R2-TEST-PUBLISH","EV-R2-INTEGRATION-AUTHORITY"]}
   ],
   "current_gate_decisions": [
     {"gate_id":"AXL-V1-A0-P34","decision_id":"D-095"},
     {"gate_id":"AXL-V1-A1-P34","decision_id":"D-102"},
     {"gate_id":"AXL-V1-A2-P34","decision_id":"D-108"},
     {"gate_id":"AXL-V1-R1-P34","decision_id":"D-111"},
-    {"gate_id":"AXL-V1-R2-P34","decision_id":"D-113"}
+    {"gate_id":"AXL-V1-R2-P34","decision_id":"D-114"}
   ]
 }

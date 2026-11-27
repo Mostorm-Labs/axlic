@@ -107,6 +107,9 @@
     {"id":"EV-GIT-R2-RESULT","status":"available","kind":"repository-revision","ref":"208502409bbf768098f0a34e42a5f49bd8e716fa"},
     {"id":"EV-R2-HOSTED-RUN","status":"available","kind":"gate-evidence","ref":"run 45801506458/job 139845620815@208502409bbf768098f0a34e42a5f49bd8e716fa (D-113 hosted evidence on the frozen toolchain: a2-windows.yml dispatched on the execution branch, every step green, ctest 104/104, A2 CLI contract with 36 cases; evidence artifact downloaded and inspected)"},
     {"id":"EV-R2-LOCAL-EVIDENCE","status":"available","kind":"gate-evidence","ref":"2085024 local: ctest 104/104; 106 tooling unit and contract tests; contract with 36 cases; eleven mutations each caught by the intended oracle; cross-version, downgrade-procedure and production-dispatch checks with the pre-change executables (D-113)"},
-    {"id":"EV-R2-INDEPENDENT-REVIEW","status":"available","kind":"gate-review","ref":"independent read-only code review 0ab525c..a5ec432 (no Critical, two Important, six Minor; summarized in the decision log) (D-113)"}
+    {"id":"EV-R2-INDEPENDENT-REVIEW","status":"available","kind":"gate-review","ref":"independent read-only code review 0ab525c..a5ec432 (no Critical, two Important, six Minor; summarized in the decision log) (D-113)"},
+    {"id":"EV-GIT-R2-INTEGRATION","status":"available","kind":"repository-revision","ref":"46f264f3e39ca25d18f3d4994fe3d17aa33daa3c"},
+    {"id":"EV-R2-TEST-PUBLISH","status":"available","kind":"gate-evidence","ref":"run 45926103154/jobs 140267654522,140268852816@46f264f3e39ca25d18f3d4994fe3d17aa33daa3c (D-114 first test-channel publish carrying the change: Pre-release v0.1.0-test.20261127.2; sha256:84b9f7cafd5669d9aee121f08f40334dfaa9e8e321049b132e22919e9c0c7631 axlic-0.1.0-test.20261127.2-win-x64.zip, re-verified locally after download; release notes extended with the change summary and the downgrade notice)"},
+    {"id":"EV-R2-INTEGRATION-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/implementation/R2/repository-integration-closure.md"}
   ]
 }
