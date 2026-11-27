@@ -96,7 +96,6 @@ InstalledCredential installed() {
       .credential_generation = 7,
       .issued_at = 100,
       .entitlements = {},
-      .policy_version = 2,
   };
 }
 
@@ -194,7 +193,7 @@ TEST_CASE("device-register adopt validates the reference format") {
   CHECK(store.state.registration->device_id == reference('7'));
 }
 
-TEST_CASE("held-version reports the camelCase triple or no credential") {
+TEST_CASE("held-version reports the camelCase pair or no credential") {
   FakeStateStore store;
   const auto empty = axlic::core::render_held_version(store);
   CHECK(empty.exit_code == 0);
@@ -209,7 +208,7 @@ TEST_CASE("held-version reports the camelCase triple or no credential") {
   const auto& version = document.at("data").at("version");
   CHECK(version.at("authorityRevision") == 3U);
   CHECK(version.at("credentialGeneration") == 7U);
-  CHECK(version.at("policyVersion") == 2U);
+  CHECK(version.size() == 2U);
 }
 
 TEST_CASE("corrupt license state maps to the local-state failure family") {
@@ -237,14 +236,14 @@ TEST_CASE("install response echoes the committed credential without re-reading s
   store.exists = true;
   store.state.registration = RegistrationAssociation{.device_id = *device};
   FakeLock lock;
-  const axlic::core::InstallRequest request{.artifact = artifact, .policy_version = 4U};
+  const axlic::core::InstallRequest request{.artifact = artifact};
   const auto rendered = axlic::core::render_install(store, lock, trusted_keys, request);
   CHECK(rendered.exit_code == 0);
   const auto result = parse(rendered);
   CHECK(result.at("data").at("result") == "OK");
   CHECK(result.at("data").at("authority_revision") == 3U);
   CHECK(result.at("data").at("credential_generation") == 7U);
-  CHECK(result.at("data").at("policy_version") == 4U);
+  CHECK(result.at("data").size() == 4U);
   // Exactly one read (inside install_credential): the response must come
   // from the install result, never a second read after the lock released.
   CHECK(store.reads == 1U);

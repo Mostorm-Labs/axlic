@@ -88,7 +88,7 @@ bool valid_installed_credential(const core::InstalledCredential& credential) {
   return !credential.credential_id.empty() && !credential.license_grant_id.empty() &&
          core::DeviceReference::parse(credential.device_id).has_value() &&
          credential.authority_revision != 0U && credential.credential_generation != 0U &&
-         credential.policy_version != 0U && credential.entitlements.size() <= 256U;
+         credential.entitlements.size() <= 256U;
 }
 
 // Signed reads reject unsigned values above INT64_MAX: nlohmann's
@@ -211,7 +211,6 @@ core::StateStoreOutcome LicenseStateCodec::encode(const core::LicenseState& stat
         {"authority_revision", credential.authority_revision},
         {"credential_generation", credential.credential_generation},
         {"issued_at", credential.issued_at},
-        {"policy_version", credential.policy_version},
         {"entitlements", std::move(entitlements)},
     };
   }
@@ -289,6 +288,10 @@ core::LicenseStateRead LicenseStateCodec::decode(const std::string_view carrier)
       if (!issued_at) {
         return {core::StateStoreOutcome::corrupt, std::nullopt};
       }
+      // Documents written by earlier builds also carry a policy_version key.
+      // It is deliberately not read: an upgrade must keep reading the previous
+      // state contract, so the retired key is ignored rather than judged
+      // corrupt, and the next write drops it.
       core::InstalledCredential credential{
           .credential_id = source.at("credential_id").get<std::string>(),
           .license_grant_id = source.at("license_grant_id").get<std::string>(),
@@ -297,7 +300,6 @@ core::LicenseStateRead LicenseStateCodec::decode(const std::string_view carrier)
           .authority_revision = source.at("authority_revision").get<std::uint64_t>(),
           .credential_generation = source.at("credential_generation").get<std::uint64_t>(),
           .issued_at = *issued_at,
-          .policy_version = source.at("policy_version").get<std::uint64_t>(),
       };
       for (const auto& entry : entitlements_source) {
         auto entitlement = entitlement_from_json(entry);

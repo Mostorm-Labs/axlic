@@ -15,12 +15,11 @@ namespace axlic::core {
 // verification (mirrors the wire::verify_credential limit).
 constexpr std::size_t kMaximumArtifactSize = 64U * 1024U;
 
-// Strict decimal u64 parsing shared by the production CLI and the contract
-// scenario executable so both surfaces reject the same inputs: digits only,
-// overflow-checked (a 20-digit UINT64_MAX stays legal), and zero optionally
-// rejected (an epoch "now" of zero is legal, a policy version is not).
+// Strict decimal u64 parsing for the contract scenario executable's numeric
+// input: digits only and overflow-checked (a 20-digit UINT64_MAX stays
+// legal). The production CLI takes no numeric argument.
 [[nodiscard]] inline std::optional<std::uint64_t> parse_u64_strict(
-    const std::string_view text, const bool allow_zero) {
+    const std::string_view text) {
   if (text.empty() || text.size() > 20U) {
     return std::nullopt;
   }
@@ -34,9 +33,6 @@ constexpr std::size_t kMaximumArtifactSize = 64U * 1024U;
       return std::nullopt;
     }
     value = value * 10U + digit;
-  }
-  if (value == 0U && !allow_zero) {
-    return std::nullopt;
   }
   return value;
 }

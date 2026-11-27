@@ -22,9 +22,7 @@ struct RegistrationAssociation {
 // Locally installed credential as committed by the installation pipeline.
 // The artifact was verified by the frozen A0 verifier at install time; the
 // stored copy is therefore the trusted offline truth. An empty entitlements
-// vector is a legal revocation credential. policy_version is channel-side
-// metadata carried by the delivery/reconcile messages and never part of the
-// CBOR payload.
+// vector is a legal revocation credential.
 struct InstalledCredential {
   std::string credential_id;
   std::string license_grant_id;
@@ -34,7 +32,6 @@ struct InstalledCredential {
   std::uint64_t credential_generation{};
   std::int64_t issued_at{};
   std::vector<wire::Entitlement> entitlements;
-  std::uint64_t policy_version{};
 
   bool operator==(const InstalledCredential&) const = default;
 };

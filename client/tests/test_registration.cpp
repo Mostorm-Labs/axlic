@@ -95,7 +95,6 @@ TEST_CASE("adopt persists the reference and preserves the credential") {
       .credential_generation = 7,
       .issued_at = 1,
       .entitlements = {},
-      .policy_version = 1,
   };
   FakeLock lock;
   const auto result = axlic::core::adopt_registration(store, lock, reference('7'));
@@ -129,7 +128,6 @@ TEST_CASE("reset drops the reference and preserves the credential") {
       .credential_generation = 7,
       .issued_at = 1,
       .entitlements = {},
-      .policy_version = 1,
   };
   FakeLock lock;
   const auto result = axlic::core::reset_registration(store, lock);

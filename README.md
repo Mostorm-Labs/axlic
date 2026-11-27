@@ -21,13 +21,15 @@ axlic identity
 axlic device-register
 axlic device-register adopt <axldev_reference>
 axlic device-register reset
-axlic install <artifact_path> --policy-version <n>
+axlic install <artifact_path>
 axlic held-version
 ```
 
 `axlic identity` must be run with machine-state write authority for first establishment. It returns only the public scheme, epoch, and 64-byte P-256 public identity as lowercase hex; provider key names and private material are never part of the CLI contract.
 
-`axlic device-register` reports the dual-state self-report value for the connection identity: the 128-hex `identity_value` while unregistered (or after the local reference was dropped), or the platform-assigned `axldev_` reference once `adopt` has persisted it. `install` runs the frozen pipeline — A0 signature verification, payload device-reference match, `(authority_revision, credential_generation)` lexicographic high-watermark anti-rollback with idempotent same-version reinstall, and an atomic local commit; an empty-entitlements revocation credential is a legal install object. `held-version` returns the held `(authorityRevision, credentialGeneration, policyVersion)` triple (or the no-credential state) for version probes and reconciliation. Channel-transient values such as delivery references never enter axlic.
+`axlic device-register` reports the dual-state self-report value for the connection identity: the 128-hex `identity_value` while unregistered (or after the local reference was dropped), or the platform-assigned `axldev_` reference once `adopt` has persisted it. `install <artifact_path>` runs the frozen pipeline — A0 signature verification, payload device-reference match, `(authority_revision, credential_generation)` lexicographic high-watermark anti-rollback with idempotent same-version reinstall, and an atomic local commit; an empty-entitlements revocation credential is a legal install object. `held-version` returns the held `(authorityRevision, credentialGeneration)` pair (or the no-credential state) for version probes and reconciliation. axlic holds no channel-side policy version and takes none on the command line: a line that still passes `--policy-version` is `COMMAND_INVALID`. Channel-transient values such as delivery references never enter axlic.
+
+Upgrades keep the installed credential: this build reads a state file written by an earlier build, ignoring the `policy_version` key those builds stored and dropping it on the next write. Builds from before that change cannot read a state file written afterwards — they fail closed with `LOCAL_STATE_CORRUPT` and leave the file untouched — so downgrading requires rebuilding local state. No axlic command does that: delete `license-state.v1.json` in the machine state root (`%ProgramData%\Auditoryworks\AxLicense`; administrators and SYSTEM have write access, ordinary users read only), then run `device-register adopt` and `install` again. The machine identity file is not affected.
 
 ## Trust keyring
 

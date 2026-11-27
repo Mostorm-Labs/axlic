@@ -9,7 +9,7 @@
 //   device-register
 //   device-register adopt <axldev_reference>
 //   device-register reset
-//   install <artifact_path> --policy-version <n>
+//   install <artifact_path>
 //   held-version
 
 #include "axlic/core/cli_numbers.hpp"
@@ -146,7 +146,7 @@ int main(const int argc, const char* const argv[]) {
     return rendered.exit_code;
   }
   if (command == "entitlement" && args.size() == 2U) {
-    const auto now = axlic::core::parse_u64_strict(args[1], true);
+    const auto now = axlic::core::parse_u64_strict(args[1]);
     if (!now) {
       return invalid_command();
     }
@@ -170,11 +170,8 @@ int main(const int argc, const char* const argv[]) {
     std::cout << rendered.json << '\n';
     return rendered.exit_code;
   }
-  if (command == "install" && args.size() == 3U && args[1] == "--policy-version") {
-    const auto policy_version = axlic::core::parse_u64_strict(args[2], false);
-    if (!policy_version) {
-      return invalid_command();
-    }
+  // The retired --policy-version flag is never an artifact path.
+  if (command == "install" && args.size() == 1U && args[0] != "--policy-version") {
     const auto artifact = axlic::core::read_artifact_file(std::string(args[0]));
     if (!artifact) {
       return invalid_artifact();
@@ -182,7 +179,7 @@ int main(const int argc, const char* const argv[]) {
     const auto keyring = floor_document.empty()
                              ? axlic::core::load_trust_keyring(root)
                              : axlic::core::load_trust_keyring_from(floor_document, root);
-    const axlic::core::InstallRequest request{.artifact = *artifact, .policy_version = *policy_version};
+    const axlic::core::InstallRequest request{.artifact = *artifact};
     const auto rendered =
         axlic::core::render_install(license_state, lock, keyring.keys, request);
     std::cout << rendered.json << '\n';

@@ -102,6 +102,11 @@
     {"id":"EV-R1-INDEPENDENT-REVIEWS","status":"available","kind":"gate-review","ref":"independent code review 81370f3..dd64060, P34 review 81370f3..60a5ede and incremental review of 055f630, all read-only (D-110; summarized in the decision log)"},
     {"id":"EV-GIT-R1-INTEGRATION","status":"available","kind":"repository-revision","ref":"9112497df2d73fbbecf65ba4dcf950d5285f6e7c"},
     {"id":"EV-R1-TEST-PUBLISH","status":"available","kind":"gate-evidence","ref":"run 45738678112/jobs 139638035125,139639190081@9112497df2d73fbbecf65ba4dcf950d5285f6e7c (D-111 first test-channel publish: Pre-release v0.1.0-test.20261126.1; sha256:f878baf2e983577cd1cfb782e784ae32f85bf55bbf9acd58f8f291a3bd0f5498 axlic-0.1.0-test.20261126.1-win-x64.zip, re-verified locally after download)"},
-    {"id":"EV-R1-INTEGRATION-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/implementation/R1/repository-integration-closure.md"}
+    {"id":"EV-R1-INTEGRATION-AUTHORITY","status":"available","kind":"repository-authority","ref":"docs/authority/implementation/R1/repository-integration-closure.md"},
+    {"id":"EV-GIT-R2-PACKAGE","status":"available","kind":"repository-artifact","ref":".aegis/packages/AXL-V1-R2-P31.md"},
+    {"id":"EV-GIT-R2-RESULT","status":"available","kind":"repository-revision","ref":"208502409bbf768098f0a34e42a5f49bd8e716fa"},
+    {"id":"EV-R2-HOSTED-RUN","status":"available","kind":"gate-evidence","ref":"run 45801506458/job 139845620815@208502409bbf768098f0a34e42a5f49bd8e716fa (D-113 hosted evidence on the frozen toolchain: a2-windows.yml dispatched on the execution branch, every step green, ctest 104/104, A2 CLI contract with 36 cases; evidence artifact downloaded and inspected)"},
+    {"id":"EV-R2-LOCAL-EVIDENCE","status":"available","kind":"gate-evidence","ref":"2085024 local: ctest 104/104; 106 tooling unit and contract tests; contract with 36 cases; eleven mutations each caught by the intended oracle; cross-version, downgrade-procedure and production-dispatch checks with the pre-change executables (D-113)"},
+    {"id":"EV-R2-INDEPENDENT-REVIEW","status":"available","kind":"gate-review","ref":"independent read-only code review 0ab525c..a5ec432 (no Critical, two Important, six Minor; summarized in the decision log) (D-113)"}
   ]
 }

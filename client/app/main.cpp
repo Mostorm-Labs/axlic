@@ -102,7 +102,7 @@ int device_register_command(const std::vector<std::string_view>& args) {
   return emit(axlic::core::command_result("a1-local", false, "COMMAND_INVALID", "command"), axlic::core::kExitCommandInvalid);
 }
 
-int install_command(const std::string& path, const std::uint64_t policy_version) {
+int install_command(const std::string& path) {
   const auto artifact = axlic::core::read_artifact_file(path);
   if (!artifact) {
     return emit(axlic::core::command_result("a1-local", false, "CREDENTIAL_INVALID", "credential", false,
@@ -114,7 +114,7 @@ int install_command(const std::string& path, const std::uint64_t policy_version)
     return emit(axlic::core::command_result("a1-local", false, "INTERNAL_ERROR", "internal"), axlic::core::kExitInternal);
   }
   const auto keyring = axlic::core::load_trust_keyring(plane.root);
-  const axlic::core::InstallRequest request{.artifact = *artifact, .policy_version = policy_version};
+  const axlic::core::InstallRequest request{.artifact = *artifact};
   return emit(axlic::core::render_install(*plane.license_state, plane.lock, keyring.keys, request));
 }
 
@@ -185,12 +185,9 @@ int main(const int argc, const char* const argv[]) {
       const std::vector<std::string_view> args(argv + 2, argv + argc);
       return device_register_command(args);
     }
-    if (command == "install" && argc == 5 && std::string_view(argv[3]) == "--policy-version") {
-      const auto policy_version = axlic::core::parse_u64_strict(argv[4], false);
-      if (!policy_version) {
-        return emit(axlic::core::command_result("a1-local", false, "COMMAND_INVALID", "command"), axlic::core::kExitCommandInvalid);
-      }
-      return install_command(argv[2], *policy_version);
+    // The retired --policy-version flag is never an artifact path.
+    if (command == "install" && argc == 3 && std::string_view(argv[2]) != "--policy-version") {
+      return install_command(argv[2]);
     }
     if (command == "held-version" && argc == 2) {
       return held_version_command();
